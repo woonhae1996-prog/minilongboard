@@ -62,7 +62,7 @@ import { createPose3 } from "./pose/pose3.js";
             ? A.dur - (80 * A.dur) / 1150
             : A.type === "ghost"
               ? A.dur
-              : A.dur * (A.type === "ncbig" ? 0.92 : 1);
+              : A.dur * (A.type === "ncbig" ? 0.81 - 200 / 1500 : 1);
     function hsh(i) {
         const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
         return x - Math.floor(x);
@@ -4131,6 +4131,7 @@ import { createPose3 } from "./pose/pose3.js";
             en: "No comply big spin",
             pos: 1,
             trick: "ncbig",
+            dur: 1500,
         },
         {
             id: "ghost",

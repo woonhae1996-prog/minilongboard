@@ -21,7 +21,7 @@ export function createPose3(env) {
             A.type === "bigspin" ||
             A.type === "biggerspin" ||
             A.type === "nocomply" ||
-            A.type === "ncbig" ||
+            (A.type === "ncbig" && !newPoses) ||
             A.type === "varial"
         ) {
             const load = t < 0.2 ? Math.sin((Math.PI * t) / 0.2) : 0;
@@ -86,6 +86,7 @@ export function createPose3(env) {
                 (newPoses &&
                     (A.type === "bigspin" ||
                         A.type === "biggerspin" ||
+                        A.type === "ncbig" ||
                         A.type === "nocomply")))
         ) {
             const yawNow = (env.G.facing ? Math.PI : 0) + yaw;
@@ -103,6 +104,7 @@ export function createPose3(env) {
             fa,
             fb,
             yaw: (env.G.facing ? Math.PI : 0) + yaw,
+            shoulderYaw: (env.G.facing ? Math.PI : 0) + (ctx.shoulderYaw ?? yaw),
             lean,
             arms,
             sway: idleSway,

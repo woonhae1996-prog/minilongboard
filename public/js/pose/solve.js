@@ -24,6 +24,11 @@ export function createSolver(env) {
         u.normalize();
         const axis = V().crossVectors(u, fwd0).normalize();
         const f = V().crossVectors(axis, u).normalize();
+        const shoulderFwd = o.shoulderYaw == null || o.shoulderYaw === o.yaw
+            ? f
+            : V(Math.sin(o.shoulderYaw), 0, Math.cos(o.shoulderYaw));
+        const shoulderAxis = V().crossVectors(u, shoulderFwd).normalize();
+        const shoulderF = V().crossVectors(shoulderAxis, u).normalize();
         const S = hip.clone().addScaledVector(u, 0.5);
         const head = S.clone().addScaledVector(u, 0.21);
         const sA = o.sockA,
@@ -61,18 +66,18 @@ export function createSolver(env) {
                 aB: legB.ankle,
             };
         for (const s of [-1, 1]) {
-            const sh = S.clone().addScaledVector(axis, 0.19 * s);
+            const sh = S.clone().addScaledVector(shoulderAxis, 0.19 * s);
             const al = o.arms * 1.15 + s * o.sway;
             const up = V()
-                .addScaledVector(axis, s * Math.sin(al))
+                .addScaledVector(shoulderAxis, s * Math.sin(al))
                 .addScaledVector(down, Math.cos(al))
-                .addScaledVector(f, 0.1 + (o.swingZ || 0) * s)
+                .addScaledVector(shoulderF, 0.1 + (o.swingZ || 0) * s)
                 .normalize();
             const elb = sh.clone().addScaledVector(up, 0.27);
             const fo = up
                 .clone()
                 .addScaledVector(down, 0.4)
-                .addScaledVector(f, o.run ? 0.9 : 0.2)
+                .addScaledVector(shoulderF, o.run ? 0.9 : 0.2)
                 .normalize();
             const ha = elb.clone().addScaledVector(fo, 0.25);
             if (s < 0) {

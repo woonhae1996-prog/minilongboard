@@ -107,12 +107,15 @@ export function createTricks(env) {
             const takeoffAt = 420 * ts; // Keep a brief, visible front-foot plant.
             const touchdownAt = A.dur - 80 * ts;
             const plant = ease(clamp(A.el / (155 * ts), 0, 1));
-            const boardSpin = ease(clamp((A.el - 56 * ts) / (touchdownAt - 127 * ts), 0, 1));
+            // Lead with the shoulders while planting; the deck and hips follow.
+            const shoulderSpin = ease(clamp(A.el / touchdownAt, 0, 1));
+            const boardSpin = ease(clamp((A.el - 155 * ts) / (touchdownAt - 155 * ts), 0, 1));
             const flight = clamp((A.el - takeoffAt) / (touchdownAt - takeoffAt), 0, 1);
             const spin = ease(flight);
             const air = Math.sin(Math.PI * flight);
             const groundAnkle = 0.085; // Shoe sole sits on the ground.
             yaw = Math.PI * spin;
+            ctx.shoulderYaw = Math.PI * shoulderSpin;
             B.yaw = Math.PI * boardSpin;
             B.py += air * 0.2;
             B.pitch = 0.25 * bump(t, 0.08, 0.55);
@@ -244,6 +247,120 @@ export function createTricks(env) {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
+        if (newPoses) {
+            // Let the deck carry its pivot momentum through the step-off.
+            // The rider settles at 150 degrees and jumps just before the deck finishes.
+            const prepEnd = 0.14, pivotStart = 0.07, pivotEnd = 0.32;
+            const plantStart = 0.29, plantEnd = 0.42;
+            const spinEnd = 0.64;
+            const takeoff = spinEnd - 200 / 1500, touchdown = takeoff + 0.17;
+            const smooth = (q) => q * q * q * (q * (q * 6 - 15) + 10);
+            const phase = (start, end) => clamp((t - start) / (end - start), 0, 1);
+            // Zero speed and acceleration at the ends prevent snaps at contact changes.
+            const pulse = (q) => 64 * q * q * q * (1 - q) * (1 - q) * (1 - q);
+            const prepTime = phase(0, prepEnd);
+            const pivotTime = phase(pivotStart, pivotEnd);
+            const plantTime = phase(plantStart, plantEnd);
+            const prep = smooth(prepTime);
+            const plant = smooth(plantTime);
+            const flight = clamp((t - takeoff) / (touchdown - takeoff), 0, 1);
+            const recover = smooth(flight);
+            const spin = smooth(phase(plantStart, spinEnd));
+            const boardLift = Math.sin(Math.PI * spin) * 0.12;
+            const pivotAngle = Math.PI * 150 / 180;
+            // Quintic Hermite segments share nonzero angular speed at 150 degrees,
+            // with matching zero angular acceleration instead of stopping and restarting.
+            const joinSpeed = 2 * Math.PI / (spinEnd - pivotStart);
+            const endTangent = (q) => q * q * q * (-4 + q * (7 - 3 * q));
+            const startTangent = (q) => q + q * q * q * (-6 + q * (8 - 3 * q));
+            const pivotRotation = pivotAngle * smooth(pivotTime)
+                + (pivotEnd - pivotStart) * joinSpeed * endTangent(pivotTime);
+            const finishTime = phase(pivotEnd, spinEnd);
+            const boardRotation = t <= pivotEnd ? pivotRotation
+                : pivotAngle + (2 * Math.PI - pivotAngle) * smooth(finishTime)
+                    + (spinEnd - pivotEnd) * joinSpeed * startTangent(finishTime);
+            const th = lerp(pivotRotation, pivotAngle, smooth(phase(plantStart, pivotEnd)));
+            const noseX = c0 + (PIVOT_AXIS - 0.5) * LM;
+            const pivotLocal = (PIVOT_AXIS - 0.5) * LM;
+            B.yaw = boardRotation;
+            B.pitch = -0.12 * pulse(phase(pivotStart, plantEnd));
+            const noseOffset = V(pivotLocal, -B.ly, 0)
+                .applyEuler(new THREE.Euler(B.roll, th, B.pitch));
+            B.px = noseX - noseOffset.x;
+            B.pz = -noseOffset.z;
+            B.py += -B.ly - noseOffset.y + boardLift;
+            const riderBaseX = B.px, riderBaseZ = B.pz;
+            yaw = th;
+            ctx.shoulderYaw = yaw + 0.14 * pulse(pivotTime);
+            pa = lerp(pa, PIVOT_FRONT, prep);
+            pb = lerp(pb, PIVOT_BACK, prep);
+            hop = pulse(flight) * 0.30;
+            const forwardX = side * Math.sin(th), forwardZ = side * Math.cos(th);
+            // Bring the deck around in front of the planted rider, without dragging either foot.
+            const stanceCenter = (PIVOT_FRONT + PIVOT_BACK - 1) * LM / 2;
+            const forwardTravel = 0.65 * spin + 0.10 * Math.sin(Math.PI * spin);
+            const alongTravel = stanceCenter * spin + 0.10 * Math.sin(Math.PI * spin);
+            const travelAhead = 0.12 * spin + 0.06 * Math.sin(Math.PI * spin);
+            B.px += forwardX * forwardTravel + Math.cos(th) * alongTravel + travelAhead;
+            B.pz += forwardZ * forwardTravel - Math.sin(th) * alongTravel;
+            const onBoard = (position) => {
+                const foot = V((position - 0.5) * LM, Y_ANK - 0.09 - B.ly, 0)
+                    .applyEuler(new THREE.Euler(B.roll, th, B.pitch));
+                return foot.add(V(riderBaseX, B.py - boardLift, riderBaseZ));
+            };
+            const noseFoot = onBoard(pa);
+            const middleFoot = onBoard(pb);
+            noseFoot.y += 0.06 * pulse(prepTime);
+            middleFoot.y += 0.04 * pulse(prepTime);
+            // Step straight in front of the torso, perpendicular to the deck.
+            const ground = {
+                x: middleFoot.x + 0.38 * forwardX,
+                y: 0.085 + shake,
+                z: middleFoot.z + 0.38 * forwardZ,
+            };
+            // Tuck the other leg as the stepping foot plants; hold it clear of the spinning deck.
+            const tucked = {
+                x: noseFoot.x + 0.04 * plant * forwardX,
+                y: noseFoot.y + 0.14 * plant,
+                z: noseFoot.z + 0.04 * plant * forwardZ,
+            };
+            // Reverse deck coordinates after the shove: the rider keeps the 150-degree heading.
+            const landingA = (1 - PIVOT_FRONT - 0.5) * LM;
+            const landingB = (1 - PIVOT_BACK - 0.5) * LM;
+            const landingAngle = 2 * Math.PI;
+            const landingFoot = (offset) => ({
+                x: B.px + offset * Math.cos(landingAngle),
+                y: Y_ANK + shake,
+                z: B.pz - offset * Math.sin(landingAngle),
+            });
+            if (t <= takeoff) {
+                ga = tucked;
+                gb = {
+                    x: lerp(middleFoot.x, ground.x, plant),
+                    y: lerp(middleFoot.y, ground.y, plant),
+                    z: lerp(middleFoot.z, ground.z, plant),
+                };
+            } else {
+                const a = landingFoot(landingA), b = landingFoot(landingB);
+                ga = {
+                    x: lerp(tucked.x, a.x, recover),
+                    y: lerp(tucked.y, a.y, recover) + hop,
+                    z: lerp(tucked.z, a.z, recover),
+                };
+                gb = {
+                    x: lerp(ground.x, b.x, recover),
+                    y: lerp(ground.y, b.y, recover) + hop,
+                    z: lerp(ground.z, b.z, recover),
+                };
+            }
+            hipZ = (ga.z + gb.z) / 2;
+            const jumpLoad = smooth(phase(takeoff - 0.12, takeoff));
+            hipDrop = 0.06 * pulse(prepTime) + (0.12 * plant + 0.05 * jumpLoad) * (1 - recover);
+            arms = lerp(0.45, 0.95, smooth(phase(0.04, plantEnd))) - 0.25 * recover;
+            lean = 0.035 * pulse(plantTime) - 0.025 * pulse(flight);
+            Object.assign(ctx, { pa, pb, hop, yaw, hipDrop, hipZ, arms, lean, ga, gb });
+            return;
+        }
         const fbx = Xw(TAIL + pb * L),
             k = clamp((t - 0.25) / 0.55, 0, 1);
         B.lx = 0;
