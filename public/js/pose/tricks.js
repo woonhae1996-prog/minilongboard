@@ -476,6 +476,20 @@ export function createTricks(env) {
         } = ctx;
         hop = Math.sin(Math.PI * t) * 0.36;
         yaw = 2 * Math.PI * e;
+        if (newPoses) {
+            const center = Xw(TAIL + ((pa + pb) / 2) * L);
+            const rotateFoot = (position) => {
+                const offset = Xw(TAIL + position * L) - center;
+                return {
+                    x: center + offset * Math.cos(yaw),
+                    y: Y_ANK + hop + shake,
+                    z: -offset * Math.sin(yaw),
+                };
+            };
+            ga = rotateFoot(pa);
+            gb = rotateFoot(pb);
+            hipZ = (ga.z + gb.z) / 2;
+        }
         arms = 0.9;
         Object.assign(ctx, {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,

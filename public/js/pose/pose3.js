@@ -86,6 +86,7 @@ export function createPose3(env) {
                 (newPoses &&
                     (A.type === "bigspin" ||
                         A.type === "biggerspin" ||
+                        A.type === "varial" ||
                         A.type === "ncbig" ||
                         A.type === "nocomply")))
         ) {
