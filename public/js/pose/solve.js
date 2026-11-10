@@ -1,4 +1,4 @@
-import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261110-gait";
+import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261110-ride-motion2";
 
 export function createSolver(env) {
     const { V, SEG, G_ANK } = env;

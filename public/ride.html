@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko" data-page="ride-test">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>주행 테스트 · 보드를 타보자!</title>
+<meta name="description" content="속도 50% 고정 · 시간 제한 없는 롱보드 주행 테스트">
+<meta property="og:type" content="website">
+<meta property="og:title" content="보드를 타보자!">
+<meta property="og:description" content="속도 50% 고정 · 시간 제한 없는 롱보드 주행 테스트">
+<meta property="og:image" content="https://minilongboard.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://minilongboard.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://minilongboard.vercel.app/og-image.png">
+<meta name="theme-color" content="#0C1013">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230C1013'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23F28C3A'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%237A4219'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-text">
+      <p class="eyebrow">Constant-speed ride test · 3D</p>
+      <h1>주행 테스트</h1>
+      <p class="h1-en">Ride test · 속도 50% 고정 · 시간 제한 없음</p>
+    </div>
+    <dl class="bests" hidden>
+      <div><dt>최고 점수<span class="en">Best score</span></dt><dd id="best">0</dd></div>
+      <div><dt>최고 콤보<span class="en">Best combo</span></dt><dd id="best-combo">0</dd></div>
+      <div><dt>트릭 도감<span class="en">Trick book</span></dt><dd id="dex-top">0/12</dd></div>
+    </dl>
+  </header>
+
+  <div class="game">
+    <div class="stage" id="stage" tabindex="-1">
+      <canvas id="cv" aria-label="3D로 그린 다리 밑 롱보드 스팟. A 3D longboard spot under a bridge"></canvas>
+      <div class="hud" aria-hidden="true">
+        <div class="hud-l"><div class="score" id="score">0</div><div class="combo"><span id="combo-k"></span><span class="en" id="combo-e"></span></div></div>
+        <div class="hud-r"><div class="timer" id="timer" aria-label="주행 경과 시간">0:00</div><div class="fever" id="fever"><span><span id="fv-l">피버</span><span class="en" id="fv-e">Fever</span></span><div class="fv-bar"><i id="fv-fill"></i></div></div><div class="warn" id="warn" hidden>돌 주의 ▸<span class="en">Pebble ahead</span></div></div>
+        <div class="speed"><span>고정 속도 50%<span class="en">Constant speed</span></span><div class="bar" id="bar"><i id="speedbar"></i></div></div>
+        <div class="posi" id="posi"><span>테일<span class="en">Tail</span></span><i></i><i></i><i></i><i></i><span>노즈<span class="en">Nose</span></span></div>
+        <div class="pops" id="pops"></div>
+        <div class="meter" id="meter" hidden><div class="zone" id="zone"></div><div class="perfect" id="perfect"></div><div class="needle" id="needle"></div><span class="meter-lbl">초록 칸에서 한 번 더!<span class="en">Tap again in the green!</span></span></div>
+      </div>
+      <div class="overlay" id="ov-title" hidden>
+        <div class="ov-card setup-card">
+          <p class="ov-eyebrow">속도 50% 고정 · FREE RIDE</p>
+          <h2>주행을 테스트해요<span class="en">Test your ride</span></h2>
+          <p class="challenge" id="challenge" hidden></p>
+          <form class="setup" id="f-title" novalidate>
+            <div class="set-row" hidden>
+              <label class="set-lbl" for="name-title">닉네임<span class="en">Name</span></label>
+              <input class="name-in" id="name-title" maxlength="12" autocomplete="nickname" placeholder="랭킹에 나와요 · Shown on ranking">
+            </div>
+            <div class="set-row">
+              <span class="set-lbl" id="lbl-spot">스팟<span class="en">Spot</span></span>
+              <div class="seg" role="group" aria-labelledby="lbl-spot">
+                <button type="button" data-spot="bridge" aria-pressed="true">다리 밑<span class="en">Bridge</span></button>
+                <button type="button" data-spot="sea" aria-pressed="false">바닷가<span class="en">Seaside</span></button>
+                <button type="button" data-spot="city" aria-pressed="false">낮 시티<span class="en">City</span></button>
+              </div>
+            </div>
+            <div class="set-row"><span class="set-lbl" id="lbl-deck">데크<span class="en">Deck</span></span><div class="swatches" id="sw-deck" role="group" aria-labelledby="lbl-deck"></div></div>
+            <div class="set-row"><span class="set-lbl" id="lbl-wheel">휠<span class="en">Wheels</span></span><div class="swatches" id="sw-wheel" role="group" aria-labelledby="lbl-wheel"></div></div>
+            <p class="name-err" id="err-title" role="status"></p>
+            <button class="go" id="go" type="submit">테스트 시작<span class="en">Start test</span></button>
+          </form>
+          <p class="set-hint">속도는 50%로 유지돼요. 시간 제한과 돌 없이 걷기·푸시·트릭을 테스트할 수 있어요.<span class="en">Constant 50% speed. Test walking, pushing and tricks without a time limit or pebbles.</span></p>
+        </div>
+      </div>
+      <div class="overlay" id="ov-over" hidden>
+        <div class="ov-card">
+          <p class="ov-eyebrow">세션 끝 · SESSION OVER</p>
+          <p class="ov-score" id="ov-score">0</p>
+          <p class="ov-badge"><span id="ov-badge-k"></span><span class="en" id="ov-badge-e"></span></p>
+          <button class="ghost" id="b-card" type="button">결과 카드 보기<span class="en">View result card</span></button>
+          <div class="over-actions">
+            <button class="go" id="again" type="button">한 판 더<span class="en">Ride again</span></button>
+            <button class="ghost" id="b-setup" type="button">스팟·보드 바꾸기<span class="en">Change spot &amp; board</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="overlay" id="ov-err" hidden>
+        <div class="ov-card">
+          <h2>3D를 못 그렸어요<span class="en">Couldn't draw 3D</span></h2>
+          <p>이 브라우저나 기기에서 WebGL을 쓸 수 없어요. 다른 브라우저로 열거나 2D 버전으로 플레이해 주세요.<span class="en">WebGL isn't available on this browser or device. Try another browser, or play the 2D version.</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="row3" id="trickrow">
+        <button class="tb dim" type="button" data-slot="0"><span class="tl">셔빗</span><span class="te">Shove-it</span><small class="tc">200</small></button>
+        <button class="tb dim" type="button" data-slot="1"><span class="tl">노컴플라이</span><span class="te">No comply</span><small class="tc">220</small></button>
+        <button class="tb dim" type="button" data-slot="2"><span class="tl">고스트라이드</span><span class="te">Ghost ride</span><small class="tc">150+</small></button>
+      </div>
+      <div class="row3">
+        <button class="pb dim" id="b-back" type="button" aria-label="뒤로 걷기, walk back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><small>뒤로</small><span class="te">Back</span></button>
+        <button class="pb dim" id="b-fwd" type="button" aria-label="앞으로 걷기, walk forward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><small>앞으로</small><span class="te">Forward</span></button>
+        <button class="pb dim" id="b-push" type="button">푸시<span class="te">Push</span></button>
+      </div>
+    </div>
+    <div class="opts">
+      <div class="opt-row">
+        <span class="opt-lbl">시점<span class="en">Camera</span></span>
+        <div class="seg" role="group" aria-label="시점 Camera">
+          <button type="button" data-cam="side" aria-pressed="false">옆 시점<span class="en">Side</span></button>
+          <button type="button" data-cam="chase" aria-pressed="true">뒤 시점<span class="en">Chase</span></button>
+        </div>
+      </div>
+      <div class="opt-row">
+        <button class="ghost" id="b-invite" type="button" hidden>친구에게 공유<span class="en">Share with friends</span></button>
+        <button class="ghost restart" id="b-restart" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg><span>다시하기<span class="en">Restart</span></span></button>
+        <button class="ghost" id="b-sound" type="button" aria-pressed="true"><span id="snd-k">소리 켜짐</span><span class="en" id="snd-e">Sound on</span></button>
+        <button class="ghost" id="b-music" type="button" aria-pressed="true"><span id="mus-k">음악 켜짐</span><span class="en" id="mus-e">Music on</span></button>
+      </div>
+      <p class="res-line" id="invite-status" role="status"></p>
+      <p class="keys">키보드: ← → 걷기 · ↑ 푸시 · 1 2 3 트릭 · R 다시하기 · V 시점<span class="en">Keys: ← → walk · ↑ push · 1 2 3 tricks · R restart · V camera</span></p>
+    </div>
+  </div>
+
+  <section hidden class="rank" aria-labelledby="rk-h">
+    <div class="guide-head"><h2 id="rk-h">랭킹<span class="en">Ranking</span></h2><button class="ghost" id="rk-refresh" type="button">새로고침<span class="en">Refresh</span></button></div>
+    <p class="rank-note" id="rk-note"></p>
+    <ol class="rank-list" id="rk-list"></ol>
+  </section>
+
+  <section hidden class="guide" aria-labelledby="g-h">
+    <div class="guide-head"><h2 id="g-h">트릭 도감<span class="en">Trick book</span></h2><span class="dex-count" id="dex-count"></span></div>
+    <ul class="dex" id="dex"></ul>
+    <ul class="rules" hidden>
+      <li><b>푸시</b>가운데 앞·뒤 두 곳에서만 발을 굴러 속도를 올릴 수 있어요.<span class="en"><b>Push</b>Push from either of the two middle spots to gain speed.</span></li>
+      <li><b>콤보</b>트릭 점수 합 × 트릭 개수. 푸시하거나 테일에서 2초 쉬면 콤보가 확정돼요.<span class="en"><b>Combo</b>Trick points × number of tricks. Push, or rest on the tail for 2 seconds, to lock it in.</span></li>
+      <li><b>피버 타임</b>트릭 점수로 피버 게이지가 다 차면 7초 동안 모든 트릭 점수가 2배예요. 넘어지면 게이지가 반으로 줄어요.<span class="en"><b>Fever time</b>Fill the fever gauge with trick points for 7 seconds of double points. A bail halves the gauge.</span></li>
+      <li><b>같은 트릭 반복</b>한 콤보 안에서 반복할수록 25%씩 깎여요. 최소 25%.<span class="en"><b>Repeats</b>Each repeat of a trick in one combo is worth 25% less, down to 25%.</span></li>
+      <li><b>돌빵</b>돌이 지나갈 때 테일에 서 있지 않으면 넘어지고, 쌓던 콤보가 날아가요. 떠 있는 트릭이나 피봇으로 피할 수도 있어요.<span class="en"><b>Pebble slam</b>If a pebble passes while you're off the tail, you fall and lose the combo. An airborne trick or a pivot can dodge it.</span></li>
+      <li><b>속도</b>트릭마다 필요한 속도가 있어요. 버튼이 흐리면 속도 부족. 노즈나 가운데서 속도가 바닥나면 버티지 못해요.<span class="en"><b>Speed</b>Every trick needs a minimum speed, and a dim button means you're too slow. Run out of speed at the nose or middle and you fall.</span></li>
+      <li><b>고스트라이드</b>내려서 달리는 동안 점수가 올라가요. 3초 넘게 달리면 보드를 놓쳐요.<span class="en"><b>Ghost ride</b>Points climb while you run beside the board. Run longer than 3 seconds and you lose it.</span></li>
+      <li><b>칭호</b>점수에 따라 뉴비(0) → 동네 라이더(3,000) → 크루 에이스(8,000) → 댄싱 머신(15,000) → 전설의 라이더(25,000).<span class="en"><b>Titles</b>Newbie (0) → Local rider (3,000) → Crew ace (8,000) → Dancing machine (15,000) → Legendary rider (25,000).</span></li>
+    </ul>
+  </section>
+
+  <p class="sig"><a href="/">게임</a> · <a href="/pose.html">자세 미리보기</a></p>
+</div>
+
+<div class="modal" id="result" hidden role="dialog" aria-modal="true" aria-labelledby="res-h">
+  <div class="modal-box">
+    <h2 id="res-h">세션 결과<span class="en">Session result</span></h2>
+    <img id="card-img" alt="이번 세션 결과 카드 · Result card for this session">
+    <p class="res-line"><span id="ov-detail"></span><span class="en" id="ov-detail-en"></span></p>
+    <p class="res-line"><span id="ov-rank-k"></span><span class="en" id="ov-rank-e"></span></p>
+    <p class="res-line" id="ov-new" hidden><span id="ov-new-k"></span><span class="en" id="ov-new-e"></span></p>
+    <p class="ov-best" id="ov-best" hidden>신기록!<span class="en">New record!</span></p>
+    <div class="res-actions">
+      <button class="go" id="b-rlink" type="button" hidden>결과 링크 공유<span class="en">Share result link</span></button>
+      <button class="go" id="b-share" type="button" hidden>공유하기<span class="en">Share</span></button>
+      <button class="go" id="b-save" type="button">이미지 저장<span class="en">Save image</span></button>
+      <button class="ghost" id="b-close" type="button">닫기<span class="en">Close</span></button>
+    </div>
+    <div class="res-link" id="res-link" hidden>
+      <input class="name-in" id="rlink-url" readonly aria-label="결과 링크 · Result link">
+      <button class="ghost" id="b-rlink-copy" type="button">복사<span class="en">Copy</span></button>
+    </div>
+    <p class="res-line" id="copy-status" role="status"></p>
+    <p class="res-hint">이미지를 길게 눌러 저장할 수도 있어요<span class="en">You can also long-press the image to save it</span></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="/js/game.js?v=20261110-ride-motion2"></script>
+</body>
+</html>

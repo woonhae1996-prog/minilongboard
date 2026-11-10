@@ -13,6 +13,7 @@ A 3D web game: walk the longboard and chain dancing tricks for 30 seconds.
 | --- | --- |
 | `public/index.html` | 게임 페이지 |
 | `public/pose.html` | 자세 미리보기 페이지 (트릭 하나씩 반복 재생) |
+| `public/ride.html` | 인게임 조작으로 주행 테스트 (속도 50% 고정, 시간 제한 없음) |
 | `public/css/style.css` | 화면 레이아웃과 색 |
 | `public/js/game.js` | 프레임 루프, 판정, 3D 화면, 조작, 랭킹, 공유 |
 | `public/js/pose/pose3.js` | 한 프레임의 사람 자세를 합치는 곳 |
@@ -34,6 +35,8 @@ python3 -m http.server -d public 8000
 ```
 
 JS가 모듈(`type="module"`)이라 파일을 더블클릭해서 열면 안 되고, 위처럼 서버로 열어야 해요.
+`/ride.html`에서 주행 테스트를 할 수 있어요. 고정 속도는 `game.js`의 `rideTestSpeed`로 조정하고, 테스트 기록은 게임 기록과 분리돼요.
+
 `/s/<id>` 결과 링크는 Vercel 함수라서 로컬에서는 `npx vercel dev`로 확인해요.
 
 ## 자세 스위치 · Pose switches

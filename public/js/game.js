@@ -1,11 +1,13 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261110-push-arms-large";
-import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
+import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261110-ride-motion2";
+import { createPose3 } from "./pose/pose3.js?v=20261110-ride-motion2";
 
 (function () {
     "use strict";
     const $ = (s) => document.querySelector(s);
     const posePage = document.documentElement.dataset.page === "pose";
+    const rideTestPage = document.documentElement.dataset.page === "ride-test";
+    const rideTestSpeed = 0.5;
     // 자세 미리보기에서 다듬은 자세(무릎 바깥, 착지 다운, 새 노컴플라이, 스핀 때 발 회전)를 게임에서도 쓴다.
     const NEW_POSES = true;
     const newPoses = posePage || NEW_POSES;
@@ -29,7 +31,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
         FEVER_T = 7;
     const POS = standingPositions;
     const HANG = footPair(footPositions.hang, "B");
-    const KEY = "darimit-session-3d.v1";
+    const KEY = rideTestPage ? "darimit-ride-test.v1" : "darimit-session-3d.v1";
     const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
     const lerp = (a, b, t) => a + (b - a) * t;
@@ -394,8 +396,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     function newState(mode) {
         return {
             mode,
-            t: SESSION,
-            v: mode === "title" ? 0.32 : startSpeed,
+            t: rideTestPage ? 0 : SESSION,
+            v: rideTestPage ? rideTestSpeed : mode === "title" ? 0.32 : startSpeed,
             worldX: 0,
             worldZ: 0,
             score: 0,
@@ -666,7 +668,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
         G.combo = freshCombo();
         G.queue = null;
         G.act = { type: "bail", el: 0, dur: 1500 };
-        G.v = 0;
+        G.v = rideTestPage ? rideTestSpeed : 0;
         G.gauge *= 0.5;
         sfx.bail();
         fx("bail");
@@ -801,7 +803,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
         } else if (A.type === "bail") {
             G.pos = startPosition;
             G.startFeet = [...startFeet];
-            G.v = startSpeed;
+            G.v = rideTestPage ? rideTestSpeed : startSpeed;
             G.awaitingFirstPush = true;
         } else if (A.type === "pivot") {
             G.pos = 0;
@@ -882,7 +884,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
                 A.type === "biggerspin")
         ) {
             G.shake = 0.25;
-            G.v *= 0.92;
+            if (!rideTestPage) G.v *= 0.92;
             sfx.clunk();
             hint("돌 통과", "Rolled over it");
             return;
@@ -911,6 +913,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     }
 
     function tickSession(dt) {
+        if (rideTestPage) {
+            G.t += dt;
+            return false;
+        }
         G.t -= dt;
         if (G.t <= 0) {
             G.t = 0;
@@ -929,7 +935,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
 
     function tickCoast(dt) {
         const A = G.act;
-        if (!A || A.type !== "bail") G.v = Math.max(0, G.v - FRICTION * dt);
+        if (rideTestPage) G.v = rideTestSpeed;
+        else if (!A || A.type !== "bail") G.v = Math.max(0, G.v - FRICTION * dt);
         G.worldX += G.v * SPEED * dt;
         return A;
     }
@@ -953,7 +960,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
             if (A.type === "push" && !A.boosted && A.el >= A.dur * 0.5) {
                 A.boosted = true;
                 G.awaitingFirstPush = false;
-                G.v = Math.min(1, G.v + 0.24);
+                G.v = rideTestPage ? rideTestSpeed : Math.min(1, G.v + 0.24);
                 sfx.push();
             }
             if (A.type === "pivot") {
@@ -1026,6 +1033,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     }
 
     function tickPebbles() {
+        if (rideTestPage) return;
         if (G.worldX + 560 > G.nextPeb) {
             G.pebbles.push({ x: G.nextPeb, done: false });
             G.nextPeb += 1250 + Math.random() * 1350;
@@ -2839,7 +2847,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     }
     function start() {
         if (posePage) return;
-        if (!X.name) {
+        if (!rideTestPage && !X.name) {
             showSetup("닉네임을 적어 주세요 · Enter a name");
             return;
         }
@@ -3024,7 +3032,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     const APP_NAME = MODE === "3d" ? "보드를 타보자!" : "다리밑 세션";
     const FILE_NAME = MODE === "3d" ? "lets-ride.png" : "darimit-session.png";
     /* ---------- 이름 · 보드 꾸미기 · 칭호 ---------- */
-    const XKEY = "darimit-extra.v1";
+    const XKEY = rideTestPage ? "darimit-ride-test-extra.v1" : "darimit-extra.v1";
     const DECKS = [
         { id: "maple", ko: "메이플", en: "Maple", c: "#C99A5E" },
         { id: "black", ko: "블랙", en: "Black", c: "#2E2E30" },
@@ -3123,6 +3131,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     function bindNameForm(formSel, input, errSel) {
         $(formSel).addEventListener("submit", (e) => {
             e.preventDefault();
+            if (rideTestPage) {
+                start();
+                return;
+            }
             const v = input.value.trim().slice(0, 12);
             if (!v) {
                 $(errSel).textContent = "닉네임을 적어 주세요 · Enter a name";
@@ -3147,7 +3159,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
         url: "https://eocgviuowuumqigwzztj.supabase.co",
         key: "sb_publishable_sDaNqJtHafIOlGAMjr-WdA_Gj-x1-5o",
     };
-    const lbOn = () => !!(LB.url && LB.key);
+    const lbOn = () => !rideTestPage && !!(LB.url && LB.key);
     const lbBase = () => LB.url.replace(/\/+$/, "") + "/rest/v1/scores";
     async function lbFetch() {
         const r = await fetch(
@@ -4393,7 +4405,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
     renderSpot();
     renderSwatches();
     renderMusic();
-    if (!posePage) refreshRank();
+    if (!posePage && !rideTestPage) refreshRank();
     renderCam();
     hud();
     if (!ok3d) {
@@ -4449,4 +4461,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
             en: p.en,
         })),
     };
+    if (rideTestPage) {
+        start();
+        hud();
+    }
 })();
