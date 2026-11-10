@@ -178,6 +178,10 @@ export function createTricks(env) {
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
         if (newPoses) {
+            // A/B identify legs, not permanent front/rear roles. A 180-degree
+            // landing swaps those roles, so work rear-first and restore leg identity below.
+            const swapLegs = pa > pb;
+            if (swapLegs) [pa, pb] = [pb, pa];
             // Rear foot kicks the tail; front foot plants, then both rise.
             // Timings are tuned for 1150ms; scale them to this trick's length.
             const ts = A.dur / 1150;
@@ -208,21 +212,17 @@ export function createTricks(env) {
                 y: lerp(Y_ANK, groundAnkle, plant) + shake,
                 z: -0.38 * side * plant,
             };
-            const plantedOffset = (pb - startCenter) * LM + 0.15;
-            const plantedZ = -0.38 * side;
-            const angle = lerp(Math.atan2(-plantedZ, plantedOffset), Math.PI, spin);
-            const radius = lerp(
-                Math.hypot(plantedOffset, plantedZ),
-                (pb - startCenter) * LM,
-                spin,
-            );
+            // Rotate signed offsets instead of a radius that can turn negative
+            // when the previous landing has reversed the two feet.
+            const frontOffset = (pb - startCenter) * LM + 0.15 * (1 - spin);
+            const frontZ = -0.38 * side * (1 - spin);
             gb = A.el <= takeoffAt ? ground : {
-                x: centerX + radius * Math.cos(angle),
+                x: centerX + frontOffset * Math.cos(yaw) + frontZ * Math.sin(yaw),
                 y: lerp(groundAnkle, Y_ANK, spin) + hop + shake,
-                z: -radius * Math.sin(angle),
+                z: -frontOffset * Math.sin(yaw) + frontZ * Math.cos(yaw),
             };
             // Keep the rear foot on the deck through its full transform.
-            const rearPosition = lerp(pa, 1 - Math.max(...POS[1]), spin);
+            const rearPosition = lerp(pa, 1 - landingCenter + pa - startCenter, spin);
             ga = V(
                 (rearPosition - 0.5) * LM - B.lx,
                 Y_ANK - 0.09 - B.ly,
@@ -232,6 +232,10 @@ export function createTricks(env) {
             hipZ = (ga.z + gb.z) / 2;
             hipDrop = 0.2 * plant * (1 - spin);
             arms = 0.9;
+            if (swapLegs) {
+                [pa, pb] = [pb, pa];
+                [ga, gb] = [gb, ga];
+            }
             Object.assign(ctx, {
                 pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
                 ga, gb, fall, alpha, runMix, cyc,

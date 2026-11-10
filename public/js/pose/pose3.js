@@ -126,7 +126,9 @@ export function createPose3(env, getStance = stanceParameters) {
         const dx = crossFeet ? fromFeet[0] - fromFeet[1] : fa.x - fb.x;
         const dz = crossFeet ? 0 : fa.z - fb.z;
         const projection = dx * Math.cos(bodyYaw) - dz * Math.sin(bodyYaw);
-        if (Math.abs(projection) > 1e-6) sockSign = Math.sign(projection);
+        // No-comply keeps each foot connected to its starting leg throughout the turn.
+        const keepNoComplyLegs = newPoses && A && A.type === "nocomply";
+        if (!keepNoComplyLegs && Math.abs(projection) > 1e-6) sockSign = Math.sign(projection);
         const hipX =
             A && A.type === "push"
                 ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.08

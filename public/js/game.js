@@ -778,7 +778,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
     }
     function endAct() {
         const A = G.act;
-        const landingPose = newPoses && A.type === "ncbig" ? pose3(0) : null;
+        const landingPose = newPoses && (A.type === "ncbig" || A.type === "nocomply")
+            ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") G.startFeet = null;
         G.act = null;
@@ -806,9 +807,11 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
                 // Adopt the actual landing as the next action's origin.
                 G.worldX = landingPose.B.px / K;
                 G.worldZ = landingPose.B.pz;
-                G.startFeet = [1 - PIVOT_FRONT, 1 - PIVOT_BACK];
+                G.startFeet = [landingPose.J.aA, landingPose.J.aB].map(
+                    foot => 0.5 + (foot.x - landingPose.B.px) / LM,
+                );
             }
-            if (tr.body180) G.facing ^= 1;
+            if (tr.body180 || (newPoses && A.type === "nocomply")) G.facing ^= 1;
             addTrick(tr.label, tr.pts, { key: A.type });
             if (tr.air) {
                 sfx.land();
