@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/s/:id", "destination": "/api/share?id=:id" }
+  ],
+  "redirects": [
+    { "source": "/minilongboard", "destination": "/", "permanent": true },
+    { "source": "/minilongboard.html", "destination": "/", "permanent": true }
+  ]
+}

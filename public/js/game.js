@@ -3490,7 +3490,8 @@ import { createPose3 } from "./pose/pose3.js";
     });
 
     /* ---------- 링크 공유 ---------- */
-    const SITE_URL = "https://minilongbd.netlify.app/";
+    // 지금 열린 사이트 주소를 그대로 쓴다 (Vercel 주소가 바뀌어도, 미리보기 배포에서도 맞게 동작).
+    const SITE_URL = location.origin + "/";
     const inArtifact = !!(
         window.claude && typeof window.claude.use === "function"
     );

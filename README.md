@@ -3,8 +3,8 @@
 30초 동안 롱보드 위를 걸어 다니며 댄싱 트릭을 이어 가는 3D 웹 게임이에요.
 A 3D web game: walk the longboard and chain dancing tricks for 30 seconds.
 
-- 사이트 · Site: https://minilongbd.netlify.app
-- 자세 미리보기 · Pose preview: https://minilongbd.netlify.app/pose.html
+- 사이트 · Site: (Vercel 주소 · Vercel URL)
+- 자세 미리보기 · Pose preview: `/pose.html`
 - made by @cloud._.sea · 자세 개선과 코드 정리 · poses & refactor: hallov012
 
 ## 폴더 구성 · Layout
@@ -21,8 +21,8 @@ A 3D web game: walk the longboard and chain dancing tricks for 30 seconds.
 | `public/js/pose-lab.js` | 자세 미리보기 버튼과 설명 |
 | `public/og-image.png` | 링크 미리보기 대표 이미지 (1200×630) |
 | `public/3d.html` | 예전 주소용 리다이렉트 |
-| `netlify/edge-functions/share.js` | `/s/<id>` 결과 링크: 그 결과의 미리보기 태그를 붙여 게임 페이지를 내려줌 |
-| `netlify.toml` | Netlify 설정 (`public` 폴더 배포, 예전 주소 리다이렉트) |
+| `api/share.js` | `/s/<id>` 결과 링크: 그 결과의 미리보기 태그를 붙여 게임 페이지를 내려줌 (Vercel Edge Function) |
+| `vercel.json` | Vercel 설정 (`public` 폴더 배포, `/s/<id>` 연결, 예전 주소 리다이렉트) |
 | `docs/game-logic.md` | 점수, 입력, 트릭 규칙 정리 |
 
 ## 로컬에서 실행 · Run locally
@@ -34,7 +34,7 @@ python3 -m http.server -d public 8000
 ```
 
 JS가 모듈(`type="module"`)이라 파일을 더블클릭해서 열면 안 되고, 위처럼 서버로 열어야 해요.
-`/s/<id>` 결과 링크는 Netlify 엣지 함수라서 로컬에서는 `npx netlify dev`로 확인해요.
+`/s/<id>` 결과 링크는 Vercel 함수라서 로컬에서는 `npx vercel dev`로 확인해요.
 
 ## 자세 스위치 · Pose switches
 
@@ -50,4 +50,4 @@ JS가 모듈(`type="module"`)이라 파일을 더블클릭해서 열면 안 되�
 ## 고치는 법 · Contributing
 
 1. 브랜치를 만들어 고쳐요.
-2. Pull request를 올리면 확인 후 합쳐요. `main`에 합쳐지면 Netlify가 자동으로 다시 배포해요.
+2. Pull request를 올리면 Vercel이 미리보기 주소를 만들어 줘요. 확인 후 `main`에 합치면 Vercel이 사이트를 자동으로 다시 배포해요.
