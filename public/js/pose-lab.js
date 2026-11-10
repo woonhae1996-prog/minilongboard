@@ -4,7 +4,7 @@
   const root = document.querySelector('#pose-lab');
   if(!game || !root) return;
   const NOTES = {
-    step: '상체가 진행 방향을 봐요.',
+    step: '테일 → 노즈 → 테일을 연속 왕복해요. 레귤러는 왼쪽, 구피는 오른쪽으로 발이 지나가요.',
     push: '상체가 진행 방향을 봐요. 밀 때 앉았다가 발을 올리며 펴요.',
     shuv: '팝할 때 무릎을 굽혔다 펴요. 착지 후 다운: 무릎을 굽혔다 펴요.',
     kickflip: '테일에서 뒷발로 팝해 보드를 띄워요. 앞발을 몸의 등쪽으로 차서 보드를 한 바퀴 플립시키고 원래 자세로 착지해요.',
@@ -19,6 +19,14 @@
     pirouette: '앞발 축으로 다른 다리를 들어요. 다운 뒤 업과 함께 돌고, 팔은 어깨 아래로 들어요.',
     pivot: '앞발은 노즈, 뒷발은 가운데. 돌기 전에 앉았다가 업과 함께 돌아요.'
   };
+  let facing = 0;
+  let selectedId = 'tail';
+  const stanceButtons = [...document.querySelectorAll('[data-stance]')];
+  stanceButtons.forEach(button => button.addEventListener('click', () => {
+    facing = Number(button.dataset.stance);
+    stanceButtons.forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.stance) === facing)));
+    select(selectedId);
+  }));
   const groups = [];
   game.poses.forEach(p => {
     let g = groups.find(x => x.name === p.group);
@@ -68,7 +76,8 @@
     root.appendChild(block);
   });
   function select(id){
-    game.playPose(id);
+    selectedId = id;
+    game.playPose(id, facing);
     buttons.forEach(x => x.b.setAttribute('aria-pressed', String(x.id === id)));
     const note = NOTES[id];
     const btn = buttons.find(x => x.id === id);

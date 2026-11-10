@@ -77,6 +77,11 @@ html[data-page="pose"] .sig{margin-top:0}
   </div>
 
   <div class="pose-opts">
+    <span class="opt-lbl">스탠스<span class="en">Stance</span></span>
+    <div class="seg" role="group" aria-label="스탠스 Stance">
+      <button type="button" data-stance="0" aria-pressed="true">레귤러<span class="en">Regular</span></button>
+      <button type="button" data-stance="1" aria-pressed="false">구피<span class="en">Goofy</span></button>
+    </div>
     <span class="opt-lbl">시점<span class="en">Camera</span></span>
     <div class="seg" role="group" aria-label="시점 Camera">
       <button type="button" data-cam="side">옆 시점<span class="en">Side</span></button>
@@ -129,7 +134,7 @@ html[data-page="pose"] .sig{margin-top:0}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="/js/game.js"></script>
-<script type="module" src="/js/pose-lab.js"></script>
+<script type="module" src="/js/game.js?v=20261110-ghost-side"></script>
+<script type="module" src="/js/pose-lab.js?v=20261110-ghost-side"></script>
 </body>
 </html>

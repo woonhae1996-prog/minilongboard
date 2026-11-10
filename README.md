@@ -39,7 +39,7 @@ JS가 모듈(`type="module"`)이라 파일을 더블클릭해서 열면 안 되�
 ## 자세 스위치 · Pose switches
 
 - `game.js`의 `NEW_POSES`: 미리보기에서 다듬은 자세(무릎 바깥, 착지 다운, 새 노컴플라이, 스핀 때 발 회전)를 게임에서도 쓸지 정해요. 지금은 켜져 있어요.
-- 발 위치 간격(`POS`)은 자세 미리보기에서만 넓은 간격을 써요. 게임에서는 크로스스텝 때 다리가 교차하도록 원래 간격을 유지해요.
+- 기본 서기 위치와 발 간격은 `public/js/pose/foot-positions.js`의 `standingCenters`, `standingHalfWidth`에서 관리해요. 게임·자세 미리보기·크로스스텝 모두 포즈 페이지 기준의 같은 좌표를 사용해요.
 
 ## 데이터 · Data (Supabase)
 

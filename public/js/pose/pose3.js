@@ -1,8 +1,14 @@
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js";
-import { createTricks } from "./tricks.js";
+import { createSolver } from "./solve.js?v=20261110-ghost-side";
+import { createTricks } from "./tricks.js?v=20261110-ghost-side";
 
-export function createPose3(env) {
+// Supply opposite signs for regular/goofy; all mirroring happens once here.
+export function stanceParameters(facing) {
+    const side = facing ? -1 : 1;
+    return { side, baseYaw: facing ? Math.PI : 0, rotationSign: side };
+}
+
+export function createPose3(env, getStance = stanceParameters) {
     const { solve, solveRun, mixJ } = createSolver(env);
     const ACT_POSE = createTricks(env);
     const {
@@ -12,7 +18,25 @@ export function createPose3(env) {
 
     function applyActPose(ctx) {
         const pose = ACT_POSE[ctx.A.type];
-        if (pose) pose(ctx);
+        if (pose) {
+            // Tricks use a regular local frame; mirror their output as a unit.
+            const side = ctx.side;
+            ctx.side = 1;
+            pose(ctx);
+            ctx.side = side;
+            const sign = ctx.stance.rotationSign;
+            ctx.yaw *= sign;
+            if (ctx.shoulderYaw != null) ctx.shoulderYaw *= sign;
+            ctx.za *= side;
+            ctx.zb *= side;
+            ctx.hipZ *= side;
+            if (ctx.ga) ctx.ga.z *= side;
+            if (ctx.gb) ctx.gb.z *= side;
+            ctx.B.yaw *= sign;
+            ctx.B.roll *= side;
+            ctx.B.pz *= side;
+            ctx.B.lz *= side;
+        }
         const A = ctx.A,
             t = ctx.t;
         let hipDrop = ctx.hipDrop;
@@ -80,39 +104,43 @@ export function createPose3(env) {
             y: Y_ANK + hop + lb + shake,
             z: zb,
         };
-        if (
-            A &&
-            (A.type === "pivot" ||
-                (newPoses &&
-                    (A.type === "bigspin" ||
-                        A.type === "biggerspin" ||
-                        A.type === "varial" ||
-                        A.type === "ncbig" ||
-                        A.type === "nocomply")))
-        ) {
-            const yawNow = (env.G.facing ? Math.PI : 0) + yaw;
-            const ax = Math.cos(yawNow),
-                az = -Math.sin(yawNow);
-            sockSign = (fa.x - fb.x) * ax + (fa.z - fb.z) * az >= 0 ? 1 : -1;
-        }
+        const crossFeet = A && A.type === "step";
+        const footYaw = crossFeet ? Math.atan2(1, ctx.side) : null;
+        const bodyYaw = crossFeet ? footYaw : ctx.stance.baseYaw + yaw;
+        const pushing = A && A.type === "push";
+        // The support toes face board travel (+X) in either stance.
+        const footYawA = pushing && ctx.pushSupportA ? Math.PI / 2 : footYaw;
+        const footYawB = pushing && !ctx.pushSupportA ? Math.PI / 2 : footYaw;
+        // Match sockets to the actual body frame, including forward-facing pushes.
+        // Steps retain their starting connection while the legs cross.
+        const fromFeet = env.G.startFeet || (crossFeet ? POS[A.from] : null);
+        const dx = crossFeet ? fromFeet[0] - fromFeet[1] : fa.x - fb.x;
+        const dz = crossFeet ? 0 : fa.z - fb.z;
+        const projection = dx * Math.cos(bodyYaw) - dz * Math.sin(bodyYaw);
+        if (Math.abs(projection) > 1e-6) sockSign = Math.sign(projection);
         const hipX =
             A && A.type === "push"
-                ? fb.x - 0.12
+                ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.1
                 : (fa.x + fb.x) / 2 + lean * 0.15;
         const hipY = Y_ANK + 0.78 + hop + shake - hipDrop;
+        // Standing feet stay perpendicular to the board; 45° is step-only.
         let J = solve({
             hip: { x: hipX, y: hipY, z: hipZ },
             fa,
             fb,
-            yaw: (env.G.facing ? Math.PI : 0) + yaw,
-            shoulderYaw: (env.G.facing ? Math.PI : 0) + (ctx.shoulderYaw ?? yaw),
+            yaw: bodyYaw,
+            shoulderYaw: ctx.stance.baseYaw + (ctx.shoulderYaw ?? yaw),
             lean,
             arms,
             sway: idleSway,
             sockA: sockSign,
             kneesOut,
+            footYawA,
+            footYawB,
+            pinFootA: pushing && ctx.pushSupportA,
+            pinFootB: pushing && !ctx.pushSupportA,
         });
-        if (runMix > 0) J = mixJ(J, solveRun(cyc, c0), runMix);
+        if (runMix > 0) J = mixJ(J, solveRun(cyc, c0, ctx.stance.side), runMix);
         if (fall > 0) {
             const px = (J.aA.x + J.aB.x) / 2,
                 py = Y_ANK,
@@ -127,20 +155,23 @@ export function createPose3(env) {
                 p.y = Math.max(0.03, py + dx * sn + dy * cs - fall * 0.12);
             }
         }
-        return { J, B, alpha };
+        return { J, B, alpha, footYawA, footYawB };
     }
 
     function pose3(time) {
         const A = env.G.act;
         const shake = env.G.shake > 0 ? Math.sin(time * 80) * 0.012 : 0;
         const t = A ? clamp(A.el / A.dur, 0, 1) : 0;
+        const feet = env.G.startFeet || POS[env.G.pos];
+        const stance = getStance(env.G.facing);
         const ctx = {
             A,
             shake,
             idleSway: reduce ? 0 : Math.sin(time * 2.6) * 0.12,
-            side: env.G.facing ? -1 : 1,
-            pa: POS[env.G.pos][0],
-            pb: POS[env.G.pos][1],
+            side: stance.side,
+            stance,
+            pa: feet[0],
+            pb: feet[1],
             la: 0,
             lb: 0,
             za: 0,
@@ -152,8 +183,8 @@ export function createPose3(env) {
             hipDrop: 0,
             hipZ: 0,
             kneesOut: newPoses,
-            sockSign: env.G.facing ? 1 : -1,
-            faceFwd: Math.PI / 2 - (env.G.facing ? Math.PI : 0),
+            sockSign: Math.sign((feet[0] - feet[1]) * stance.side) || 1,
+            faceFwd: Math.PI / 2,
             ga: null,
             gb: null,
             fall: 0,

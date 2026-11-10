@@ -11,15 +11,24 @@ export function createTricks(env) {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
-        const f = POS[A.from],
+        const f = env.G.startFeet || POS[A.from],
             to = POS[A.to];
         pa = lerp(f[0], to[0], e);
         pb = lerp(f[1], to[1], e);
         const lift = Math.sin(Math.PI * t) * 0.13;
-        if (f[0] !== to[0]) la = lift;
-        else lb = lift;
+        // +X is forward; regular crosses left, goofy crosses right.
+        const crossZ = -0.08 * side * Math.sin(Math.PI * t);
+        hop = Math.sin(Math.PI * t) * 0.035;
+        hipDrop = bump(t, 0, 0.3) * 0.025 + bump(t, 0.6, 1) * 0.055;
+        if (f[0] !== to[0]) {
+            la = lift;
+            za = crossZ;
+        } else {
+            lb = lift;
+            zb = crossZ;
+        }
         arms = 0.7;
-        lean = (A.to > A.from ? 0.1 : -0.1) * Math.sin(Math.PI * t);
+        lean = 0.06;
         yaw = faceFwd;
         Object.assign(ctx, {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
@@ -33,32 +42,44 @@ export function createTricks(env) {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
-        const fx = Xw(TAIL + pa * L),
-            zz = 0.2 * side;
+        // The foot nearer the nose supports the rider; the rear foot pushes.
+        const movingA = pa < pb;
+        let pushingFoot;
+        const rear = movingA ? pa : pb;
+        const front = movingA ? pb : pa;
+        const fx = Xw(TAIL + rear * L);
+        const supportX = Xw(TAIL + front * L);
+        const boardLength = Math.abs(Xw(TAIL + L) - Xw(TAIL));
+        const plantX = supportX - boardLength * 0.05;
+        const kickX = supportX - boardLength * 0.35;
+        const zz = boardLength / 6 * side;
+        ctx.pushSupportA = !movingA;
         if (t < 0.3) {
             const q = ease(t / 0.3);
-            ga = {
-                x: fx - 0.06 * q,
+            pushingFoot = {
+                x: lerp(fx, plantX, q),
                 y: lerp(Y_ANK, G_ANK, q),
                 z: zz * q,
             };
         } else if (t < 0.65) {
             const q = (t - 0.3) / 0.35;
-            ga = {
-                x: lerp(fx - 0.06, fx - 0.42, q),
+            pushingFoot = {
+                x: lerp(plantX, kickX, q),
                 y: G_ANK,
                 z: zz,
             };
         } else {
             const q = ease((t - 0.65) / 0.35);
-            ga = {
-                x: lerp(fx - 0.42, fx, q),
+            pushingFoot = {
+                x: lerp(kickX, fx, q),
                 y:
                     lerp(G_ANK, Y_ANK, q) +
-                    Math.sin(Math.PI * q) * 0.1,
+                    Math.sin(Math.PI * q) * boardLength / 12,
                 z: zz * (1 - q),
             };
         }
+        if (movingA) ga = pushingFoot;
+        else gb = pushingFoot;
         const qBack = clamp((t - 0.65) / 0.35, 0, 1);
         hipDrop =
             t < 0.65

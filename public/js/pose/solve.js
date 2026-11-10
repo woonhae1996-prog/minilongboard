@@ -1,7 +1,7 @@
 export function createSolver(env) {
     const { V, SEG, G_ANK } = env;
 
-    function ik(socket, foot, pole) {
+    function ik(socket, foot, pole, pinned = false) {
         const d = V().subVectors(foot, socket),
             len = d.length() || 0.001;
         const reach = Math.min(len, 2 * SEG - 0.002),
@@ -13,7 +13,7 @@ export function createSolver(env) {
         p.normalize();
         return {
             knee: mid.addScaledVector(p, h),
-            ankle: socket.clone().addScaledVector(dir, reach),
+            ankle: pinned ? foot.clone() : socket.clone().addScaledVector(dir, reach),
         };
     }
     function solve(o) {
@@ -35,7 +35,9 @@ export function createSolver(env) {
             sB = -sA;
         const sockA = hip.clone().addScaledVector(axis, 0.09 * sA),
             sockB = hip.clone().addScaledVector(axis, 0.09 * sB);
-        const kneePole = (foot, socketSign) => {
+        const kneePole = (foot, socketSign, footYaw) => {
+            if (footYaw != null)
+                return V(Math.sin(footYaw), 0, Math.cos(footYaw));
             if (!o.kneesOut)
                 return f.clone().addScaledVector(axis, 0.3 * socketSign);
             const outward = V(foot.x - hip.x, 0, foot.z - hip.z);
@@ -46,12 +48,14 @@ export function createSolver(env) {
         const legA = ik(
             sockA,
             V(o.fa.x, o.fa.y, o.fa.z),
-            kneePole(o.fa, sA),
+            kneePole(o.fa, sA, o.footYawA),
+            o.pinFootA,
         );
         const legB = ik(
             sockB,
             V(o.fb.x, o.fb.y, o.fb.z),
-            kneePole(o.fb, sB),
+            kneePole(o.fb, sB, o.footYawB),
+            o.pinFootB,
         );
         const down = V(0, -1, 0),
             J = {
@@ -92,11 +96,11 @@ export function createSolver(env) {
         }
         return J;
     }
-    function solveRun(cyc, c0) {
+    function solveRun(cyc, c0, side = 1) {
         const s = Math.sin(cyc),
             c = Math.cos(cyc);
         const P = (lx, ly, lz) => ({ x: c0 - 0.1 + lz, y: ly, z: -0.55 - lx });
-        return solve({
+        const joints = solve({
             hip: P(0, 0.9 - Math.abs(s) * 0.03, 0.04),
             fa: P(-0.1, G_ANK + Math.max(0, c) * 0.14, s * 0.3),
             fb: P(0.1, G_ANK + Math.max(0, -c) * 0.14, -s * 0.3),
@@ -109,6 +113,9 @@ export function createSolver(env) {
             run: true,
             sockA: -1,
         });
+        // Mirror the complete running skeleton, including hips, knees and arms.
+        for (const joint of Object.values(joints)) joint.z *= side;
+        return joints;
     }
     function mixJ(a, b, t) {
         const o = {};

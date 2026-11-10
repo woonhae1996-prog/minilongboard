@@ -1,5 +1,6 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { createPose3 } from "./pose/pose3.js";
+import { footPositions, footPair, standingPositions } from "./pose/foot-positions.js?v=20261110-ghost-side";
+import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
 
 (function () {
     "use strict";
@@ -26,26 +27,15 @@ import { createPose3 } from "./pose/pose3.js";
         JOINT_OFF = 231;
     const FEVER_PTS = 1600,
         FEVER_T = 7;
-    const POS = posePage
-        ? [0.125, 0.375, 0.625, 0.825].map((center) => {
-              // Quarter-board spacing, with the nose stance slightly inset.
-              const halfWidth = 0.175;
-              return [center - halfWidth, center + halfWidth];
-          })
-        : [
-            [0.2, 0.55],
-            [0.66, 0.55],
-            [0.66, 0.8],
-            [0.93, 0.8],
-        ],
-        HANG = [0.92, 0.985];
+    const POS = standingPositions;
+    const HANG = footPair(footPositions.hang, "B");
     const KEY = "darimit-session-3d.v1";
     const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
     const lerp = (a, b, t) => a + (b - a) * t;
     const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-    const PIVOT_BACK = 0.5,
-        PIVOT_FRONT = 0.93,
+    const PIVOT_BACK = footPositions.pivot.rear,
+        PIVOT_FRONT = footPositions.pivot.front,
         PIVOT_PREP = 0.3,
         PIVOT_AXIS = 1;
     const PIVOT_SHIFT = 2 * (PIVOT_AXIS - 0.5) * L;
@@ -396,15 +386,20 @@ import { createPose3 } from "./pose/pose3.js";
     }
 
     /* ---------- 상태 ---------- */
+    const startPosition = 2; // 가운데 앞: 대기·시작·결과 화면의 기본 위치
+    const startSpeed = 0;
+    const startFeet = footPair(footPositions.start); // 앞발: 가운데 위, 뒷발: 가운데 아래
     const freshCombo = () => ({ pts: 0, n: 0, names: [], counts: {} });
     function newState(mode) {
         return {
             mode,
             t: SESSION,
-            v: mode === "title" ? 0.32 : 0.35,
+            v: mode === "title" ? 0.32 : startSpeed,
             worldX: 0,
             score: 0,
-            pos: 0,
+            pos: startPosition,
+            startFeet: [...startFeet],
+            awaitingFirstPush: mode === "play",
             act: null,
             queue: null,
             combo: freshCombo(),
@@ -677,6 +672,8 @@ import { createPose3 } from "./pose/pose3.js";
         G.act = Object.assign({ type, el: 0, prevE: 0 }, extra);
     }
 
+    const canPush = (pos) => pos === 1 || pos === 2;
+
     let lastKey = 0;
     function doInput(kind) {
         if (G.mode !== "play") return;
@@ -723,16 +720,16 @@ import { createPose3 } from "./pose/pose3.js";
             if (G.pos > 0)
                 startAct("step", { from: G.pos, to: G.pos - 1, dur: 240 });
         } else if (kind === "push") {
-            if (G.pos === 0) {
+            if (canPush(G.pos)) {
                 bank();
                 startAct("push", { dur: 460, boosted: false });
-            } else hint("푸시는 테일(맨 뒤)에서만", "Push from the tail only");
+            }
         } else if (slot >= 0) {
             const id = SLOTS[G.pos][slot];
             if (!id) return;
             const tr = TRICKS[id];
             if (G.v < tr.minV) {
-                if (G.pos === 0)
+                if (canPush(G.pos))
                     hint("속도가 부족해, 푸시!", "Too slow. Push!");
                 else hint("속도가 부족해", "Too slow");
                 return;
@@ -779,6 +776,8 @@ import { createPose3 } from "./pose/pose3.js";
     }
     function endAct() {
         const A = G.act;
+        // Pushing returns to the same stance; walking/tricks may change it.
+        if (A.type !== "push") G.startFeet = null;
         G.act = null;
         if (A.type === "step") {
             G.pos = A.to;
@@ -789,8 +788,10 @@ import { createPose3 } from "./pose/pose3.js";
             });
             if (A.to === 3) addTrick("노즈 워크", 100, { key: "nose" });
         } else if (A.type === "bail") {
-            G.pos = 0;
-            G.v = 0;
+            G.pos = startPosition;
+            G.startFeet = [...startFeet];
+            G.v = startSpeed;
+            G.awaitingFirstPush = true;
         } else if (A.type === "pivot") {
             G.pos = 0;
             G.facing ^= 1;
@@ -931,6 +932,7 @@ import { createPose3 } from "./pose/pose3.js";
             A.el += dt * 1000;
             if (A.type === "push" && !A.boosted && A.el >= A.dur * 0.5) {
                 A.boosted = true;
+                G.awaitingFirstPush = false;
                 G.v = Math.min(1, G.v + 0.24);
                 sfx.push();
             }
@@ -985,6 +987,7 @@ import { createPose3 } from "./pose/pose3.js";
     function tickStall() {
         const A = G.act;
         if (
+            !G.awaitingFirstPush &&
             G.pos > 0 &&
             G.v < 0.05 &&
             (!A || (A.type !== "bail" && A.type !== "pivot"))
@@ -2550,16 +2553,20 @@ import { createPose3 } from "./pose/pose3.js";
         const qs = new THREE.Quaternion().setFromRotationMatrix(
             new THREE.Matrix4().makeBasis(Xf, UP(), Zf),
         );
+        const footA = P.footYawA == null ? Zf : V(Math.sin(P.footYawA), 0, Math.cos(P.footYawA));
+        const footB = P.footYawB == null ? Zf : V(Math.sin(P.footYawB), 0, Math.cos(P.footYawB));
         r.shoeA.position
             .copy(J.aA)
             .add(V(0, -0.035, 0))
-            .addScaledVector(Zf, 0.05);
+            .addScaledVector(footA, 0.05);
         r.shoeA.quaternion.copy(qs);
+        if (P.footYawA != null) r.shoeA.quaternion.setFromAxisAngle(UP(), P.footYawA);
         r.shoeB.position
             .copy(J.aB)
             .add(V(0, -0.035, 0))
-            .addScaledVector(Zf, 0.05);
+            .addScaledVector(footB, 0.05);
         r.shoeB.quaternion.copy(qs);
+        if (P.footYawB != null) r.shoeB.quaternion.setFromAxisAngle(UP(), P.footYawB);
     }
 
     function renderPebbles(time) {
@@ -2632,6 +2639,10 @@ import { createPose3 } from "./pose/pose3.js";
     const bBack = $("#b-back"),
         bFwd = $("#b-fwd"),
         bPush = $("#b-push");
+    const pushNote = document.createElement("small");
+    pushNote.textContent = "가운데서만 가능";
+    pushNote.hidden = true;
+    bPush.appendChild(pushNote);
     const tbs = Array.from(document.querySelectorAll(".tb"));
     const tLbl = tbs.map((b) => b.querySelector(".tl")),
         tEn = tbs.map((b) => b.querySelector(".te")),
@@ -2747,7 +2758,8 @@ import { createPose3 } from "./pose/pose3.js";
             tog(tbs[i], "now", !!s.now);
             tog(tbs[i], "dim", !!s.dim);
         });
-        tog(bPush, "dim", !play || G.pos !== 0 || ghost);
+        tog(bPush, "dim", !play || !canPush(G.pos) || ghost);
+        pushNote.hidden = !play || canPush(G.pos) || ghost;
         tog(bFwd, "dim", !play || G.pos === 3 || ghost);
         tog(bBack, "dim", !play || G.pos === 0 || ghost);
         dots.forEach((d, i) => tog(d, "on", !ghost && i === G.pos));
@@ -2812,7 +2824,8 @@ import { createPose3 } from "./pose/pose3.js";
         G.act = null;
         G.queue = null;
         G.mode = "over";
-        G.pos = 0;
+        G.pos = startPosition;
+        G.startFeet = [...startFeet];
         G.spot = spot;
         G.fever = 0;
         const isBest = G.score > best.score;
@@ -4081,7 +4094,7 @@ import { createPose3 } from "./pose/pose3.js";
             label: "크로스스텝",
             en: "Cross-step",
             pos: 0,
-            act: { type: "step", from: 0, to: 1, dur: 240 },
+            act: { type: "step", from: 0, to: 1, dur: 480 },
         },
         {
             id: "push",
@@ -4215,6 +4228,7 @@ import { createPose3 } from "./pose/pose3.js";
         },
     ];
     let poseSpec = null;
+    let poseFacing = 0;
     function makePose(spec) {
         if (spec.ghost)
             return {
@@ -4245,17 +4259,19 @@ import { createPose3 } from "./pose/pose3.js";
     function replayPose() {
         if (!poseSpec) return;
         G.pos = poseSpec.pos;
-        G.facing = 0;
+        G.facing = poseFacing;
         G.act = makePose(poseSpec);
     }
-    function playPose(id) {
+    function playPose(id, facing = poseFacing) {
         const spec = POSE_DEMOS.find((p) => p.id === id);
         if (!spec) return;
         poseSpec = spec;
+        poseFacing = facing === 1 ? 1 : 0;
         G.mode = "pose";
+        G.startFeet = null;
         G.queue = null;
         G.shake = 0;
-        G.facing = 0;
+        G.facing = poseFacing;
         G.pos = spec.pos;
         G.act = makePose(spec);
     }
@@ -4304,7 +4320,17 @@ import { createPose3 } from "./pose/pose3.js";
             G.worldX += PIVOT_SHIFT * (e - (A.prevE || 0));
             A.prevE = e;
         }
-        if (A.type === "ghost") advanceGhost(A, dt);
+        if (A.type === "step" && A.el >= A.dur) {
+            const path = [0, 1, 2, 3, 2, 1, 0];
+            const index = (A.pathIndex || 0) + 1;
+            const next = index % (path.length - 1);
+            G.pos = A.to;
+            G.act = {
+                type: "step", from: G.pos, to: path[next + 1],
+                dur: A.dur, el: A.el - A.dur, prevE: 0, pathIndex: next,
+            };
+        }
+        else if (A.type === "ghost") advanceGhost(A, dt);
         else if (A.type === "hang10") advanceHang(A);
         else if (A.el >= A.dur + 480) replayPose();
     }
