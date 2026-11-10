@@ -1,7 +1,7 @@
-import { sampleRunFoot } from "./run-gait.js?v=20261110-ride-motion2";
+import { sampleRunFoot } from "./run-gait.js?v=20261110-shoulder-lower";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js?v=20261110-ride-motion2";
-import { createTricks } from "./tricks.js?v=20261110-ride-motion2";
+import { createSolver } from "./solve.js?v=20261110-shoulder-lower";
+import { createTricks } from "./tricks.js?v=20261110-shoulder-lower";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {

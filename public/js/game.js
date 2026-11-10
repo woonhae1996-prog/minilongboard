@@ -1,6 +1,6 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261110-ride-motion2";
-import { createPose3 } from "./pose/pose3.js?v=20261110-ride-motion2";
+import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261110-shoulder-lower";
+import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
 
 (function () {
     "use strict";
@@ -1425,6 +1425,12 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ride-motion2";
             upR: mk(cyl, M.shirt),
             foL: mk(cyl, M.skin),
             foR: mk(cyl, M.skin),
+            kneeA: mk(new T.SphereGeometry(0.074, 12, 10), M.pants),
+            kneeB: mk(new T.SphereGeometry(0.074, 12, 10), M.pants),
+            elbowL: mk(new T.SphereGeometry(0.058, 12, 10), M.skin),
+            elbowR: mk(new T.SphereGeometry(0.058, 12, 10), M.skin),
+            shoulderL: mk(new T.SphereGeometry(0.055, 12, 10), M.shirt),
+            shoulderR: mk(new T.SphereGeometry(0.055, 12, 10), M.shirt),
             torso: mk(
                 new T.LatheGeometry(
                     [
@@ -2563,10 +2569,17 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ride-motion2";
     function renderRider(P) {
         const J = P.J,
             r = R.r;
+        // Round caps bridge the limb cylinders as the joints bend.
+        r.kneeA.position.copy(J.kA);
+        r.kneeB.position.copy(J.kB);
+        r.elbowL.position.copy(J.eL);
+        r.elbowR.position.copy(J.eR);
+        r.shoulderL.position.copy(J.shL).lerp(J.S, 0.06);
+        r.shoulderR.position.copy(J.shR).lerp(J.S, 0.06);
         limb(r.thA, J.sockA, J.kA, 0.078);
-        limb(r.shA, J.kA, J.aA, 0.066);
+        limb(r.shA, J.kA, J.aA, 0.07);
         limb(r.thB, J.sockB, J.kB, 0.078);
-        limb(r.shB, J.kB, J.aB, 0.066);
+        limb(r.shB, J.kB, J.aB, 0.07);
         const Y = V().subVectors(J.S, J.hip).normalize();
         const X0 = V().subVectors(J.shR, J.shL).normalize();
         const Z = V().crossVectors(X0, Y).normalize();

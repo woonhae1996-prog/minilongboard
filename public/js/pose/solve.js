@@ -1,7 +1,8 @@
-import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261110-ride-motion2";
+import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261110-shoulder-lower";
 
 export function createSolver(env) {
     const { V, SEG, G_ANK } = env;
+    const shoulderDrop = 0.035;
 
     function ik(socket, foot, pole, pinned = false) {
         const d = V().subVectors(foot, socket),
@@ -84,7 +85,8 @@ export function createSolver(env) {
                 aB: legB.ankle,
             };
         for (const s of [-1, 1]) {
-            const sh = S.clone().addScaledVector(shoulderAxis, 0.19 * s);
+            const sh = S.clone().addScaledVector(u, -shoulderDrop)
+                .addScaledVector(shoulderAxis, 0.19 * s);
             const al = o.arms * 1.15 + s * o.sway;
             const pushSwing = (o.armDrive || 0) * s * (o.supportArmSign || 1);
             const up = V()
