@@ -249,7 +249,7 @@ export function createTricks(env) {
         } = ctx;
         if (newPoses) {
             // Let the deck carry its pivot momentum through the step-off.
-            // The rider settles at 150 degrees and jumps just before the deck finishes.
+            // The rider holds 150 degrees while planted, then completes 180 degrees in the jump.
             const prepEnd = 0.14, pivotStart = 0.07, pivotEnd = 0.32;
             const plantStart = 0.29, plantEnd = 0.42;
             const spinEnd = 0.64;
@@ -290,7 +290,7 @@ export function createTricks(env) {
             B.pz = -noseOffset.z;
             B.py += -B.ly - noseOffset.y + boardLift;
             const riderBaseX = B.px, riderBaseZ = B.pz;
-            yaw = th;
+            yaw = lerp(th, Math.PI, recover);
             ctx.shoulderYaw = yaw + 0.14 * pulse(pivotTime);
             pa = lerp(pa, PIVOT_FRONT, prep);
             pb = lerp(pb, PIVOT_BACK, prep);
@@ -324,7 +324,7 @@ export function createTricks(env) {
                 y: noseFoot.y + 0.14 * plant,
                 z: noseFoot.z + 0.04 * plant * forwardZ,
             };
-            // Reverse deck coordinates after the shove: the rider keeps the 150-degree heading.
+            // Reverse deck coordinates to match the rider's completed 180-degree turn.
             const landingA = (1 - PIVOT_FRONT - 0.5) * LM;
             const landingB = (1 - PIVOT_BACK - 0.5) * LM;
             const landingAngle = 2 * Math.PI;
