@@ -51,8 +51,8 @@ export function createTricks(env) {
         const supportX = Xw(TAIL + front * L);
         const boardLength = Math.abs(Xw(TAIL + L) - Xw(TAIL));
         const plantX = supportX - boardLength * 0.05;
-        const kickX = supportX - boardLength * 0.35;
-        const zz = boardLength / 6 * side;
+        const kickX = supportX - boardLength * 0.56;
+        const zz = boardLength * 0.22 * side;
         ctx.pushSupportA = !movingA;
         if (t < 0.3) {
             const q = ease(t / 0.3);
@@ -81,12 +81,18 @@ export function createTricks(env) {
         if (movingA) ga = pushingFoot;
         else gb = pushingFoot;
         const qBack = clamp((t - 0.65) / 0.35, 0, 1);
+        // Roll onto the rear toes at push-off, then release on the way back.
+        ctx.pushFootPitch = 0.4 * ease(clamp((t - 0.35) / 0.3, 0, 1))
+            * (1 - ease(qBack));
         hipDrop =
             t < 0.65
                 ? 0.06 + Math.sin((Math.PI * t) / 0.65) * 0.12
                 : lerp(0.06, 0, ease(qBack)) -
                   Math.sin(Math.PI * qBack) * 0.08;
-        lean = 0.2;
+        hipDrop += 0.12 * Math.sin(Math.PI * t) ** 2;
+        const drive = Math.sin(Math.PI * clamp(t / 0.8, 0, 1)) ** 2;
+        lean = 0.24 + 0.16 * drive;
+        ctx.leanF = 0.18 * drive;
         arms = 0.35;
         yaw = faceFwd;
         Object.assign(ctx, {
@@ -633,6 +639,8 @@ export function createTricks(env) {
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
         cyc = A.cyc;
+        // Keep the original remount rotation; face travel only off the board.
+        if (A.phase === "off" || A.phase === "run") yaw = faceFwd;
         if (A.phase === "off") runMix = e;
         else if (A.phase === "run") runMix = 1;
         else if (A.phase === "jump") {

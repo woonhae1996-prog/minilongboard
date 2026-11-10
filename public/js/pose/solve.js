@@ -1,3 +1,5 @@
+import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261110-gait";
+
 export function createSolver(env) {
     const { V, SEG, G_ANK } = env;
 
@@ -24,6 +26,17 @@ export function createSolver(env) {
         u.normalize();
         const axis = V().crossVectors(u, fwd0).normalize();
         const f = V().crossVectors(axis, u).normalize();
+        if (o.fitFeet) {
+            // Lower the body enough to reach the requested foot targets instead
+            // of shortening the visible push stroke at the IK reach limit.
+            const reach = 2 * SEG - 0.02;
+            for (const [foot, sign] of [[o.fa, o.sockA], [o.fb, -o.sockA]]) {
+                const dx = foot.x - (hip.x + axis.x * 0.09 * sign);
+                const dz = foot.z - (hip.z + axis.z * 0.09 * sign);
+                const rise = Math.sqrt(Math.max(0, reach * reach - dx * dx - dz * dz));
+                hip.y = Math.min(hip.y, foot.y + rise - axis.y * 0.09 * sign);
+            }
+        }
         const shoulderFwd = o.shoulderYaw == null || o.shoulderYaw === o.yaw
             ? f
             : V(Math.sin(o.shoulderYaw), 0, Math.cos(o.shoulderYaw));
@@ -35,11 +48,12 @@ export function createSolver(env) {
             sB = -sA;
         const sockA = hip.clone().addScaledVector(axis, 0.09 * sA),
             sockB = hip.clone().addScaledVector(axis, 0.09 * sB);
-        const kneePole = (foot, socketSign, footYaw) => {
+        const kneePole = (foot, socketSign, footYaw, kneeLift = 0) => {
             if (footYaw != null)
                 return V(Math.sin(footYaw), 0, Math.cos(footYaw));
             if (!o.kneesOut)
-                return f.clone().addScaledVector(axis, 0.3 * socketSign);
+                return f.clone().addScaledVector(axis, 0.3 * socketSign)
+                    .addScaledVector(u, kneeLift);
             const outward = V(foot.x - hip.x, 0, foot.z - hip.z);
             if (outward.lengthSq() < 1e-6)
                 outward.copy(axis).multiplyScalar(socketSign);
@@ -48,13 +62,13 @@ export function createSolver(env) {
         const legA = ik(
             sockA,
             V(o.fa.x, o.fa.y, o.fa.z),
-            kneePole(o.fa, sA, o.footYawA),
+            kneePole(o.fa, sA, o.footYawA, o.kneeLiftA),
             o.pinFootA,
         );
         const legB = ik(
             sockB,
             V(o.fb.x, o.fb.y, o.fb.z),
-            kneePole(o.fb, sB, o.footYawB),
+            kneePole(o.fb, sB, o.footYawB, o.kneeLiftB),
             o.pinFootB,
         );
         const down = V(0, -1, 0),
@@ -96,25 +110,32 @@ export function createSolver(env) {
         }
         return J;
     }
-    function solveRun(cyc, c0, side = 1) {
+    function solveRun(cyc, c0, side = 1, motion = runMotion) {
         const s = Math.sin(cyc),
             c = Math.cos(cyc);
-        const P = (lx, ly, lz) => ({ x: c0 - 0.1 + lz, y: ly, z: -0.55 - lx });
+        const footA = sampleRunFoot(cyc, motion);
+        const footB = sampleRunFoot(cyc + Math.PI, motion);
+        const step = (runPhase(cyc) * 2) % 1;
+        const hipY = motion.hipHeight + Math.sin(Math.PI * step) ** 2 * motion.bounce
+            - Math.cos(Math.PI * step) ** 8 * motion.landingCompression;
+        const P = (lx, ly, lz) => ({ x: c0 - 0.1 + lz, y: ly, z: (-0.55 - lx) * side });
         const joints = solve({
-            hip: P(0, 0.9 - Math.abs(s) * 0.03, 0.04),
-            fa: P(-0.1, G_ANK + Math.max(0, c) * 0.14, s * 0.3),
-            fb: P(0.1, G_ANK + Math.max(0, -c) * 0.14, -s * 0.3),
+            hip: P(s * motion.hipSway, hipY, 0.04),
+            kneeLiftA: footA.kneeLift,
+            kneeLiftB: footB.kneeLift,
+            fa: P(-0.1, G_ANK + footA.y, footA.x),
+            fb: P(0.1, G_ANK + footB.y, footB.x),
             yaw: Math.PI / 2,
-            lean: 0,
-            leanF: 0.22,
-            arms: 0.18,
-            sway: 0,
-            swingZ: s * 0.8,
+            lean: s * motion.bodySway * side,
+            shoulderYaw: Math.PI / 2,
+            leanF: 0.24 + Math.abs(c) * 0.025,
+            arms: 0.22,
+            sway: c * 0.04,
+            swingZ: -Math.cos(cyc) * motion.armSwing,
             run: true,
-            sockA: -1,
+            sockA: -side,
         });
-        // Mirror the complete running skeleton, including hips, knees and arms.
-        for (const joint of Object.values(joints)) joint.z *= side;
+        // Mirror the running path before solving, keeping the body facing +X.
         return joints;
     }
     function mixJ(a, b, t) {

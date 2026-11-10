@@ -1,11 +1,19 @@
+import { sampleRunFoot } from "./run-gait.js?v=20261110-hip-bounce";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js?v=20261110-ghost-side";
-import { createTricks } from "./tricks.js?v=20261110-ghost-side";
+import { createSolver } from "./solve.js?v=20261110-hip-bounce";
+import { createTricks } from "./tricks.js?v=20261110-hip-bounce";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
     const side = facing ? -1 : 1;
     return { side, baseYaw: facing ? Math.PI : 0, rotationSign: side };
+}
+
+export function runningFootPitch(cycle, mix) {
+    return {
+        a: sampleRunFoot(cycle).pitch * mix,
+        b: sampleRunFoot(cycle + Math.PI).pitch * mix,
+    };
 }
 
 export function createPose3(env, getStance = stanceParameters) {
@@ -59,8 +67,9 @@ export function createPose3(env, getStance = stanceParameters) {
             if (TRICKS[A.type] && TRICKS[A.type].air) {
                 hipDrop += landingDown(A.el, touchdownOf(A));
             } else if (
-                A.type === "ghost" &&
-                (A.phase === "jump" || A.phase === "flip")
+                A.type === "pivot" || A.type === "pirouette" ||
+                (A.type === "ghost" &&
+                    (A.phase === "jump" || A.phase === "flip"))
             ) {
                 hipDrop += landingDown(A.el, A.dur);
             }
@@ -120,7 +129,7 @@ export function createPose3(env, getStance = stanceParameters) {
         if (Math.abs(projection) > 1e-6) sockSign = Math.sign(projection);
         const hipX =
             A && A.type === "push"
-                ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.1
+                ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.08
                 : (fa.x + fb.x) / 2 + lean * 0.15;
         const hipY = Y_ANK + 0.78 + hop + shake - hipDrop;
         // Standing feet stay perpendicular to the board; 45° is step-only.
@@ -131,14 +140,16 @@ export function createPose3(env, getStance = stanceParameters) {
             yaw: bodyYaw,
             shoulderYaw: ctx.stance.baseYaw + (ctx.shoulderYaw ?? yaw),
             lean,
+            leanF: ctx.leanF || 0,
             arms,
             sway: idleSway,
             sockA: sockSign,
             kneesOut,
             footYawA,
             footYawB,
-            pinFootA: pushing && ctx.pushSupportA,
-            pinFootB: pushing && !ctx.pushSupportA,
+            fitFeet: pushing,
+            pinFootA: pushing,
+            pinFootB: pushing,
         });
         if (runMix > 0) J = mixJ(J, solveRun(cyc, c0, ctx.stance.side), runMix);
         if (fall > 0) {
@@ -155,7 +166,13 @@ export function createPose3(env, getStance = stanceParameters) {
                 p.y = Math.max(0.03, py + dx * sn + dy * cs - fall * 0.12);
             }
         }
-        return { J, B, alpha, footYawA, footYawB };
+        const footPitch = runningFootPitch(cyc || 0, runMix);
+        if (pushing) {
+            if (ctx.pushSupportA) footPitch.b = ctx.pushFootPitch;
+            else footPitch.a = ctx.pushFootPitch;
+        }
+        return { J, B, alpha, footYawA, footYawB,
+            footPitchA: footPitch.a, footPitchB: footPitch.b };
     }
 
     function pose3(time) {

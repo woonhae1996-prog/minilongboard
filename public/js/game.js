@@ -1,6 +1,6 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { footPositions, footPair, standingPositions } from "./pose/foot-positions.js?v=20261110-ghost-side";
-import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
+import { footPositions, footPair, standingPositions } from "./pose/foot-positions.js?v=20261110-hip-bounce";
+import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
 
 (function () {
     "use strict";
@@ -388,6 +388,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
     /* ---------- 상태 ---------- */
     const startPosition = 2; // 가운데 앞: 대기·시작·결과 화면의 기본 위치
     const startSpeed = 0;
+    const pushDuration = 560;
     const startFeet = footPair(footPositions.start); // 앞발: 가운데 위, 뒷발: 가운데 아래
     const freshCombo = () => ({ pts: 0, n: 0, names: [], counts: {} });
     function newState(mode) {
@@ -723,7 +724,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
         } else if (kind === "push") {
             if (canPush(G.pos)) {
                 bank();
-                startAct("push", { dur: 460, boosted: false });
+                startAct("push", { dur: pushDuration, boosted: false });
             }
         } else if (slot >= 0) {
             const id = SLOTS[G.pos][slot];
@@ -814,6 +815,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
                 G.landEl = A.el - touchdownOf(A);
             }
         }
+        if (A.type === "pivot" || A.type === "pirouette") G.landEl = 0;
         afterAct();
     }
     function endGhost(A) {
@@ -979,7 +981,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
                         A.dur = 1000;
                     }
                 } else if (A.phase === "run") {
-                    A.cyc += dt * (7 + G.v * 8);
+                    A.cyc += dt * (8 + G.v * 9);
                     A.run += dt;
                     const si = Math.floor(A.cyc / Math.PI);
                     if (si !== A.stepIdx) {
@@ -2528,6 +2530,17 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
         renderFx(dt, time, c0, bw);
     }
 
+    function tiltRunningShoe(shoe, pitch) {
+        // Push-off pivots around the toe contact instead of sinking it into the ground.
+        const toe = V(0, -shoe.scale.y, shoe.scale.z * 0.8);
+        const contact = pitch > 0 ? toe.clone().applyQuaternion(shoe.quaternion) : null;
+        shoe.rotateX(pitch);
+        if (contact) {
+            const tiltedContact = toe.applyQuaternion(shoe.quaternion);
+            shoe.position.add(contact.sub(tiltedContact));
+        }
+    }
+
     function renderRider(P) {
         const J = P.J,
             r = R.r;
@@ -2569,12 +2582,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
             .addScaledVector(footA, 0.05);
         r.shoeA.quaternion.copy(qs);
         if (P.footYawA != null) r.shoeA.quaternion.setFromAxisAngle(UP(), P.footYawA);
+        tiltRunningShoe(r.shoeA, P.footPitchA || 0);
         r.shoeB.position
             .copy(J.aB)
             .add(V(0, -0.035, 0))
             .addScaledVector(footB, 0.05);
         r.shoeB.quaternion.copy(qs);
         if (P.footYawB != null) r.shoeB.quaternion.setFromAxisAngle(UP(), P.footYawB);
+        tiltRunningShoe(r.shoeB, P.footPitchB || 0);
     }
 
     function renderPebbles(time) {
@@ -4118,7 +4133,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
             label: "푸시",
             en: "Push",
             pos: 1,
-            act: { type: "push", dur: 460, boosted: false },
+            act: { type: "push", dur: pushDuration, boosted: false },
         },
         {
             id: "shuv",
@@ -4303,7 +4318,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
             return;
         }
         if (A.phase === "run") {
-            A.cyc += dt * (7 + G.v * 8);
+            A.cyc += dt * (8 + G.v * 9);
             A.run += dt;
             if (A.run >= A.need) {
                 A.phase = A.finish;
