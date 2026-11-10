@@ -211,7 +211,14 @@ export function createPose3(env, getStance = stanceParameters) {
         const G = env.G;
         if (newPoses && G.landEl < 320 && !(A && ((TRICKS[A.type] && TRICKS[A.type].air) || A.type === "ghost")))
             ctx.hipDrop += landingDown(G.landEl, 0);
-        return solvePose(ctx);
+        const result = solvePose(ctx);
+        // Persistent lateral travel belongs to the world frame, after stance mirroring.
+        const worldZ = G.worldZ || 0;
+        if (worldZ) {
+            result.B.pz += worldZ;
+            for (const joint of Object.values(result.J)) joint.z += worldZ;
+        }
+        return result;
     }
     return pose3;
 }

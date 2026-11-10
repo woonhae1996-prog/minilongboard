@@ -396,6 +396,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
             t: SESSION,
             v: mode === "title" ? 0.32 : startSpeed,
             worldX: 0,
+            worldZ: 0,
             score: 0,
             pos: startPosition,
             startFeet: [...startFeet],
@@ -776,6 +777,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
     }
     function endAct() {
         const A = G.act;
+        const landingPose = newPoses && A.type === "ncbig" ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") G.startFeet = null;
         G.act = null;
@@ -799,6 +801,12 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
             sfx.land();
         } else if (TRICKS[A.type] && TRICKS[A.type].pts) {
             const tr = TRICKS[A.type];
+            if (landingPose) {
+                // Adopt the actual landing as the next action's origin.
+                G.worldX = landingPose.B.px / K;
+                G.worldZ = landingPose.B.pz;
+                G.startFeet = [1 - PIVOT_FRONT, 1 - PIVOT_BACK];
+            }
             if (tr.body180) G.facing ^= 1;
             addTrick(tr.label, tr.pts, { key: A.type });
             if (tr.air) {
@@ -2590,11 +2598,19 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
         }
     }
 
-    function renderCamera(dt, c0) {
+    function renderCamera(dt, c0, P) {
         const cm = CAMS[camMode],
             tp = cm.pos(c0),
             tl = cm.look(c0),
             a = 1 - Math.exp(-dt * 5);
+        if (!posePage || (G.act && G.act.type === "ncbig")) {
+            // Follow the displaced landing instead of pulling the rider back to the origin.
+            const dx = P.B.px - c0, dz = P.B.pz;
+            tp.x += dx;
+            tp.z += dz;
+            tl.x += dx;
+            tl.z += dz;
+        }
         if (!R.camInit) {
             R.camPos.copy(tp);
             R.camLook.copy(tl);
@@ -2624,7 +2640,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
         renderBoard(dt, time, c0, P);
         renderRider(P);
         renderPebbles(time);
-        renderCamera(dt, c0);
+        renderCamera(dt, c0, P);
         renderer.render(scene, camera);
     }
 
@@ -4332,6 +4348,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-ghost-side";
         }
         else if (A.type === "ghost") advanceGhost(A, dt);
         else if (A.type === "hang10") advanceHang(A);
+        else if (A.type === "ncbig") {
+            // Keep the landing direction and position; clicking the demo replays it.
+            A.el = Math.min(A.el, A.dur + 480);
+        }
         else if (A.el >= A.dur + 480) replayPose();
     }
 
