@@ -1,7 +1,7 @@
 export function createTricks(env) {
     const {
         V, POS, HANG, Xw, TAIL, L, TRUCK, Y_ANK, G_ANK, LM, K,
-        ease, lerp, clamp, bump, panFeet, newPoses,
+        ease, lerp, clamp, bump, panFeet, newPoses, stepPositions = POS,
         PIVOT_BACK, PIVOT_FRONT, PIVOT_PREP, PIVOT_AXIS, PIVOT_SHIFT,
     } = env;
 
@@ -11,8 +11,8 @@ export function createTricks(env) {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
-        const f = env.G.startFeet || POS[A.from],
-            to = POS[A.to];
+        const f = A.fromFeet || env.G.startFeet || stepPositions[A.from],
+            to = stepPositions[A.to];
         pa = lerp(f[0], to[0], e);
         pb = lerp(f[1], to[1], e);
         const lift = Math.sin(Math.PI * t) * 0.13;
@@ -93,6 +93,7 @@ export function createTricks(env) {
         const drive = Math.sin(Math.PI * clamp(t / 0.8, 0, 1)) ** 2;
         lean = 0.24 + 0.16 * drive;
         ctx.leanF = 0.18 * drive;
+        ctx.pushArmSwing = 0.9 * Math.sin(Math.PI * t) ** 2;
         arms = 0.35;
         yaw = faceFwd;
         Object.assign(ctx, {

@@ -1,6 +1,6 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { footPositions, footPair, standingPositions } from "./pose/foot-positions.js?v=20261110-hip-bounce";
-import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
+import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261110-push-arms-large";
+import { createPose3 } from "./pose/pose3.js?v=20261110-push-arms-large";
 
 (function () {
     "use strict";
@@ -402,6 +402,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
             pos: startPosition,
             startFeet: [...startFeet],
             awaitingFirstPush: mode === "play",
+            crossStepStance: false,
             act: null,
             queue: null,
             combo: freshCombo(),
@@ -672,6 +673,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
     }
     function startAct(type, extra) {
         G.act = Object.assign({ type, el: 0, prevE: 0 }, extra);
+        if (type === "step") G.act.fromFeet = [...(G.startFeet || POS[G.pos])];
     }
 
     const canPush = (pos) => pos === 1 || pos === 2;
@@ -781,10 +783,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
         const landingPose = newPoses && (A.type === "ncbig" || A.type === "nocomply")
             ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
-        if (A.type !== "push") G.startFeet = null;
+        if (A.type !== "push") {
+            G.startFeet = null;
+            G.crossStepStance = false;
+        }
         G.act = null;
         if (A.type === "step") {
             G.pos = A.to;
+            G.startFeet = [...crossStepPositions[A.to]];
+            G.crossStepStance = true;
             addTrick("크로스스텝", 20, {
                 mult: false,
                 quiet: true,
@@ -1948,6 +1955,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
     const UP = () => V(0, 1, 0);
     const pose3 = createPose3({
         V, SEG, G_ANK, Y_ANK, L, TAIL, TRUCK, Xw, K, LM, POS, HANG,
+        stepPositions: crossStepPositions,
         posePage, newPoses, reduce, TRICKS,
         clamp, lerp, ease, bump, panFeet, landingDown, touchdownOf,
         PIVOT_BACK, PIVOT_FRONT, PIVOT_PREP, PIVOT_AXIS, PIVOT_SHIFT,
@@ -4294,6 +4302,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
         if (!poseSpec) return;
         G.pos = poseSpec.pos;
         G.facing = poseFacing;
+        G.crossStepStance = false;
+        G.startFeet = poseSpec.act?.type === "step" ? [...crossStepPositions[poseSpec.act.from]] : null;
         G.act = makePose(poseSpec);
     }
     function playPose(id, facing = poseFacing) {
@@ -4302,7 +4312,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
         poseSpec = spec;
         poseFacing = facing === 1 ? 1 : 0;
         G.mode = "pose";
-        G.startFeet = null;
+        G.startFeet = spec.act?.type === "step" ? [...crossStepPositions[spec.act.from]] : null;
+        G.crossStepStance = false;
         G.queue = null;
         G.shake = 0;
         G.facing = poseFacing;
@@ -4359,6 +4370,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-hip-bounce";
             const index = (A.pathIndex || 0) + 1;
             const next = index % (path.length - 1);
             G.pos = A.to;
+            G.startFeet = [...crossStepPositions[A.to]];
+            G.crossStepStance = true;
             G.act = {
                 type: "step", from: G.pos, to: path[next + 1],
                 dur: A.dur, el: A.el - A.dur, prevE: 0, pathIndex: next,

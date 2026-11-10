@@ -86,10 +86,11 @@ export function createSolver(env) {
         for (const s of [-1, 1]) {
             const sh = S.clone().addScaledVector(shoulderAxis, 0.19 * s);
             const al = o.arms * 1.15 + s * o.sway;
+            const pushSwing = (o.armDrive || 0) * s * (o.supportArmSign || 1);
             const up = V()
                 .addScaledVector(shoulderAxis, s * Math.sin(al))
                 .addScaledVector(down, Math.cos(al))
-                .addScaledVector(shoulderF, 0.1 + (o.swingZ || 0) * s)
+                .addScaledVector(shoulderF, 0.1 + (o.swingZ || 0) * s + pushSwing)
                 .normalize();
             const elb = sh.clone().addScaledVector(up, 0.27);
             const fo = up

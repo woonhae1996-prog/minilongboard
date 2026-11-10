@@ -1,7 +1,7 @@
-import { sampleRunFoot } from "./run-gait.js?v=20261110-hip-bounce";
+import { sampleRunFoot } from "./run-gait.js?v=20261110-push-arms-large";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js?v=20261110-hip-bounce";
-import { createTricks } from "./tricks.js?v=20261110-hip-bounce";
+import { createSolver } from "./solve.js?v=20261110-push-arms-large";
+import { createTricks } from "./tricks.js?v=20261110-push-arms-large";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -126,9 +126,13 @@ export function createPose3(env, getStance = stanceParameters) {
         const dx = crossFeet ? fromFeet[0] - fromFeet[1] : fa.x - fb.x;
         const dz = crossFeet ? 0 : fa.z - fb.z;
         const projection = dx * Math.cos(bodyYaw) - dz * Math.sin(bodyYaw);
-        // No-comply keeps each foot connected to its starting leg throughout the turn.
+        // Preserve each action's leg identity through crossing and rotation.
         const keepNoComplyLegs = newPoses && A && A.type === "nocomply";
-        if (!keepNoComplyLegs && Math.abs(projection) > 1e-6) sockSign = Math.sign(projection);
+        if (crossFeet || (!A && env.G.crossStepStance)) {
+            sockSign = -ctx.side;
+        } else if (!keepNoComplyLegs && Math.abs(projection) > 1e-6) {
+            sockSign = Math.sign(projection);
+        }
         const hipX =
             A && A.type === "push"
                 ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.08
@@ -145,6 +149,8 @@ export function createPose3(env, getStance = stanceParameters) {
             leanF: ctx.leanF || 0,
             arms,
             sway: idleSway,
+            armDrive: pushing ? ctx.pushArmSwing : 0,
+            supportArmSign: ctx.pushSupportA ? sockSign : -sockSign,
             sockA: sockSign,
             kneesOut,
             footYawA,
