@@ -1,0 +1,14 @@
+[build]
+  publish = "public"
+  command = ""
+
+# 친구 사이트에서 쓰던 예전 주소
+[[redirects]]
+  from = "/minilongboard"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/minilongboard.html"
+  to = "/"
+  status = 301

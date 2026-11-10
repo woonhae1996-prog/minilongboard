@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko" data-page="pose">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>자세 미리보기 · 보드를 타보자!</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230C1013'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23F28C3A'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%237A4219'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+html[data-page="pose"]{height:100%;padding-top:0;padding-bottom:0;overflow:hidden}
+html[data-page="pose"] body{height:100dvh;overflow:hidden}
+html[data-page="pose"] .wrap{height:100%;max-width:1200px;padding-top:max(12px,env(safe-area-inset-top,0px));padding-bottom:max(10px,env(safe-area-inset-bottom,0px));gap:10px;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+html[data-page="pose"] .top{gap:8px}
+html[data-page="pose"] .top-text{gap:2px}
+html[data-page="pose"] .top h1{font-size:clamp(28px,5vw,40px)}
+html[data-page="pose"] .h1-en{margin-top:0}
+.pose-main{min-height:0;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.pose-preview{flex:none;display:grid;gap:10px;min-width:0}
+html[data-page="pose"] .pose-preview .stage{width:100%;height:min(42dvh,380px);aspect-ratio:auto}
+.pose-scroll{min-height:0;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px;scrollbar-color:var(--line) transparent}
+.pose-scroll>*+*{margin-top:14px}
+html[data-page="pose"] .sig{margin-top:0}
+.pose-lab{display:grid;gap:16px}
+.pose-block{display:grid;gap:8px}
+.pose-block h2{font-size:18px}
+.pose-grid{display:flex;flex-wrap:wrap;gap:8px}
+.pose-grid button{position:relative;font:inherit;font-size:14px;font-weight:600;line-height:1.2;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer}
+.pose-grid button .en{font-size:11px}
+.pose-grid button[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:var(--on-lamp)}
+.pose-grid button[aria-pressed="true"] .en{color:var(--on-lamp)}
+.pose-dot{position:absolute;top:6px;left:6px;width:7px;height:7px;border-radius:50%;background:var(--lamp);pointer-events:none}
+.pose-grid button[aria-pressed="true"] .pose-dot{background:var(--on-lamp)}
+.pose-tip{position:fixed;z-index:20;max-width:240px;margin:0;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);font-size:12.5px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.pose-note{color:var(--muted);font-size:13px}
+.pose-opts{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.pose-opts .opt-lbl{font-size:13px;color:var(--muted)}
+@media (min-width:960px){
+  .pose-main{display:grid;grid-template-columns:minmax(320px,0.92fr) minmax(340px,1.15fr);grid-template-rows:minmax(0,1fr);align-items:stretch;gap:20px}
+  .pose-preview{min-height:0;grid-template-rows:minmax(180px,1fr) auto;align-content:stretch}
+  html[data-page="pose"] .pose-preview .stage{height:auto;min-height:0;max-height:none}
+  .pose-scroll{height:100%;max-height:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-text">
+      <p class="eyebrow">Pose preview</p>
+      <h1>자세 미리보기</h1>
+      <p class="h1-en">Skill pose playback</p>
+    </div>
+  </header>
+
+  <div class="pose-main">
+  <div class="pose-preview">
+  <div class="stage" id="stage" tabindex="-1">
+    <canvas id="cv" aria-label="선택한 트릭의 자세 애니메이션"></canvas>
+    <div class="hud" hidden>
+      <div class="hud-l"><div class="score" id="score">0</div><div class="combo"><span id="combo-k"></span><span class="en" id="combo-e"></span></div></div>
+      <div class="hud-r"><div class="timer" id="timer">0:30</div><div class="fever" id="fever"><span><span id="fv-l">피버</span><span class="en" id="fv-e">Fever</span></span><div class="fv-bar"><i id="fv-fill"></i></div></div><div class="warn" id="warn" hidden></div></div>
+      <div class="speed"><div class="bar" id="bar"><i id="speedbar"></i></div></div>
+      <div class="posi" id="posi"><i></i><i></i><i></i><i></i></div>
+      <div class="pops" id="pops"></div>
+      <div class="meter" id="meter" hidden><div class="zone" id="zone"></div><div class="perfect" id="perfect"></div><div class="needle" id="needle"></div></div>
+    </div>
+    <div class="overlay" id="ov-title" hidden></div>
+    <div class="overlay" id="ov-over" hidden></div>
+    <div class="overlay" id="ov-err" hidden>
+      <div class="ov-card">
+        <h2>3D를 못 그렸어요<span class="en">Couldn't draw 3D</span></h2>
+      </div>
+    </div>
+  </div>
+
+  <div class="pose-opts">
+    <span class="opt-lbl">시점<span class="en">Camera</span></span>
+    <div class="seg" role="group" aria-label="시점 Camera">
+      <button type="button" data-cam="side">옆 시점<span class="en">Side</span></button>
+      <button type="button" data-cam="chase">뒤 시점<span class="en">Chase</span></button>
+    </div>
+    <span class="opt-lbl">스팟<span class="en">Spot</span></span>
+    <div class="seg" role="group" aria-label="스팟 Spot">
+      <button type="button" data-spot="bridge">다리 밑<span class="en">Bridge</span></button>
+      <button type="button" data-spot="sea">바닷가<span class="en">Seaside</span></button>
+      <button type="button" data-spot="city">낮 시티<span class="en">City</span></button>
+    </div>
+  </div>
+
+  </div>
+  <div class="pose-scroll">
+  <div class="pose-lab" id="pose-lab"></div>
+  <p class="pose-note">누르면 그 자세만 반복 재생해요. 점수는 올라가지 않아요.<span class="en">Click a skill to loop just that pose. Scoring stays off.</span></p>
+  </div>
+  </div>
+  <p class="sig"><a href="/">게임으로 돌아가기</a></p>
+</div>
+
+<div hidden>
+  <span id="best"></span><span id="best-combo"></span><span id="dex-top"></span>
+  <ul id="dex"></ul><span id="dex-count"></span>
+  <button class="tb" type="button"><span class="tl"></span><span class="te"></span><small class="tc"></small></button>
+  <button class="tb" type="button"><span class="tl"></span><span class="te"></span><small class="tc"></small></button>
+  <button class="tb" type="button"><span class="tl"></span><span class="te"></span><small class="tc"></small></button>
+  <button type="button" id="b-back"></button>
+  <button type="button" id="b-fwd"></button>
+  <button type="button" id="b-push"></button>
+  <button type="button" id="b-restart"></button>
+  <button type="button" id="b-sound"></button><span id="snd-k"></span><span id="snd-e"></span>
+  <button type="button" id="b-music"></button><span id="mus-k"></span><span id="mus-e"></span>
+  <form id="f-title"><input id="name-title"></form><p id="err-title"></p>
+  <button type="button" id="again"></button>
+  <button type="button" id="b-setup"></button>
+  <div id="sw-deck"></div><div id="sw-wheel"></div>
+  <p id="rk-note"></p><ol id="rk-list"></ol><button type="button" id="rk-refresh"></button>
+  <button type="button" id="b-card"></button>
+  <button type="button" id="b-close"></button>
+  <button type="button" id="b-share"></button>
+  <button type="button" id="b-save"></button>
+  <button type="button" id="b-invite"></button>
+  <button type="button" id="b-rlink"></button>
+  <button type="button" id="b-rlink-copy"></button>
+  <div id="result" hidden></div>
+  <div id="res-link" hidden><input id="rlink-url"></div>
+  <p id="copy-status"></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="/js/game.js"></script>
+<script type="module" src="/js/pose-lab.js"></script>
+</body>
+</html>
