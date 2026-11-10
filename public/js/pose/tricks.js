@@ -94,6 +94,56 @@ export function createTricks(env) {
         });
     }
 
+    // Preview-only action: POSE_DEMOS supplies this without a gameplay TRICKS entry.
+    function poseFlip(ctx) {
+        const { A, t, B, side, c0, shake } = ctx;
+        // Kickflip flicks behind the torso; heelflip flicks forward.
+        const flipDirection = A.type === "heelflip" ? side : -side;
+        const smooth = (q) => q * q * q * (q * (q * 6 - 15) + 10);
+        const phase = (start, end) => clamp((t - start) / (end - start), 0, 1);
+        const pulse = (q) => 64 * q * q * q * (1 - q) * (1 - q) * (1 - q);
+        const setup = smooth(phase(0, 0.20));
+        const pop = smooth(phase(0.20, 0.29)) * (1 - smooth(phase(0.31, 0.46)));
+        const flight = phase(0.26, 0.80);
+        const hop = 0.48 * pulse(flight);
+        const landing = smooth(phase(0.63, 0.80));
+        const pa = lerp(lerp(ctx.pa, 0.06, setup), ctx.pa, landing);
+        const pb = lerp(lerp(ctx.pb, 0.48, setup), ctx.pb, landing);
+        // Press the tail down first, then lift and level the deck before its single flip.
+        B.pitch = 0.34 * pop;
+        const tail = V(-0.5 * LM, -B.ly, 0)
+            .applyEuler(new THREE.Euler(0, 0, B.pitch));
+        B.px = c0 - 0.5 * LM - tail.x;
+        B.py += -B.ly - tail.y + 0.35 * pulse(flight);
+        B.roll = flipDirection * 2 * Math.PI * smooth(phase(0.36, 0.67));
+        const onDeck = (position) => V((position - 0.5) * LM, Y_ANK - 0.09 - B.ly, 0)
+            .applyEuler(new THREE.Euler(0, 0, B.pitch))
+            .add(V(B.px, B.py, B.pz));
+        const rear = onDeck(pa), front = onDeck(pb);
+        const rearRelease = smooth(phase(0.25, 0.34));
+        const frontRelease = smooth(phase(0.29, 0.39));
+        const flick = pulse(phase(0.29, 0.68));
+        const ga = {
+            x: lerp(rear.x, Xw(TAIL + pa * L), rearRelease),
+            y: lerp(rear.y, Y_ANK + shake + hop + 0.08 * pulse(flight), rearRelease),
+            z: -side * 0.06 * pulse(flight) * rearRelease,
+        };
+        const gb = {
+            x: lerp(front.x, Xw(TAIL + pb * L) + 0.07 * flick, frontRelease),
+            y: lerp(front.y, Y_ANK + shake + hop + 0.10 * pulse(flight), frontRelease),
+            z: flipDirection * 0.23 * flick * frontRelease,
+        };
+        const settle = clamp((A.el - A.dur * 0.80) / 320, 0, 1);
+        Object.assign(ctx, {
+            pa, pb, ga, gb, hop,
+            yaw: 0,
+            hipZ: (ga.z + gb.z) / 2,
+            hipDrop: 0.17 * pulse(phase(0, 0.27)) + 0.16 * Math.sin(Math.PI * settle) ** 2,
+            arms: 0.45 + 0.50 * pulse(flight),
+            lean: 0.035 * pop * (1 - landing),
+        });
+    }
+
     function poseNocomply(ctx) {
         const { A, t, e, B, side, faceFwd, c0, shake } = ctx;
         let {
@@ -589,6 +639,8 @@ export function createTricks(env) {
         step: poseStep,
         push: posePush,
         shuv: poseShuv,
+        kickflip: poseFlip,
+        heelflip: poseFlip,
         nocomply: poseNocomply,
         pan: posePan,
         bigspin: poseBigspin,

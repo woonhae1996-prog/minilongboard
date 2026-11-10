@@ -4100,6 +4100,22 @@ import { createPose3 } from "./pose/pose3.js";
             trick: "shuv",
         },
         {
+            id: "kickflip",
+            group: "트릭",
+            label: "킥플립",
+            en: "Kickflip",
+            pos: 0,
+            act: { type: "kickflip", dur: 1400 },
+        },
+        {
+            id: "heelflip",
+            group: "트릭",
+            label: "힐플립",
+            en: "Heelflip",
+            pos: 0,
+            act: { type: "heelflip", dur: 1400 },
+        },
+        {
             id: "bigspin",
             group: "트릭",
             label: "빅스핀",
