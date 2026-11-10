@@ -1,6 +1,6 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261110-shoulder-lower";
-import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
+import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261111-peter-pan-duration-1200";
+import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200";
 
 (function () {
     "use strict";
@@ -46,8 +46,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
     const bump = (t, a, b) =>
         t <= a || t >= b ? 0 : Math.sin((Math.PI * (t - a)) / (b - a));
     // 다운: 착지 후 무릎을 굽혀 충격을 받고 다시 펴는 동작.
-    const landingDown = (elapsed, touchdown) =>
-        Math.sin(Math.PI * clamp((elapsed - touchdown) / 320, 0, 1)) * 0.16;
+    const landingDown = (elapsed, touchdown, amount = 0.16) =>
+        Math.sin(Math.PI * clamp((elapsed - touchdown) / 320, 0, 1)) * amount;
     // 트릭이 바닥에 닿는 시점(ms). 노컴플라이 타이밍은 1150ms 기준이라 트릭 길이에 맞춰 줄인다.
     const touchdownOf = (A) =>
         A.type === "nocomply"
@@ -75,6 +75,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
         행텐: "Hang ten",
         "행텐 퍼펙트": "Hang ten perfect",
         "180 피봇": "180 pivot",
+        "180 스텝": "180 step",
+        "360 스텝": "360 step",
         "돌 넘기": "Pebble hop",
         빅스핀: "Big spin",
         비거스핀: "Bigger spin",
@@ -137,6 +139,16 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
             howEn: "Plant your front foot and pop the tail; the board spins 360° while you turn 180° back onto it.",
         },
         {
+            id: "step360", label: "360 스텝", zone: "가운데 뒤", zoneEn: "Rear middle", pts: "360",
+            how: "레귤러 기준 180 스텝 뒤 오른발을 고정하고 왼발을 그 앞꿈치의 보드 왼편에 모아요. 오른발을 시계 방향으로 돌려 가운데 뒤에 착지해요",
+            howEn: "Continue the 180 step by gathering the left foot to the right toes, then sweeping the right foot clockwise back to rear middle.",
+        },
+        {
+            id: "step180", label: "180 스텝", zone: "가운데 뒤", zoneEn: "Rear middle", pts: "180",
+            how: "레귤러 기준 왼발을 오른발 앞꿈치의 보드 오른편에 수직으로 모은 뒤, 오른발을 반시계로 돌리며 몸도 180° 돌아요",
+            howEn: "Step with each foot in turn to rotate your body 180° while the board stays straight.",
+        },
+        {
             id: "ghost",
             label: "고스트라이드",
             zone: "가운데 뒤",
@@ -160,8 +172,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
             zone: "가운데 앞",
             zoneEn: "Front middle",
             pts: "250",
-            how: "보드 위에서 양다리를 교차하며 앞뒤로 걸어요",
-            howEn: "Walk forward and back on the board, crossing your legs with every step.",
+            how: "왼발을 오른발 앞꿈치의 보드 오른편에 모으고, 오른발을 왼편으로 옮긴 뒤 왼발을 가운데 위에 놓아요",
+            howEn: "Gather the left foot at the right toes, sweep the right foot to the opposite side, then place the left foot at upper middle.",
         },
         {
             id: "pirouette",
@@ -169,8 +181,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
             zone: "가운데 앞",
             zoneEn: "Front middle",
             pts: "300",
-            how: "보드 위에서 몸을 360° 돌려요",
-            howEn: "Spin your body 360° on the board.",
+            how: "앞발을 진행 방향으로 돌린 뒤, 보드 위에서 몸을 360° 돌려요",
+            howEn: "Turn the front foot toward travel, then spin your body 360° on the board.",
         },
         {
             id: "varial",
@@ -244,12 +256,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
             cap: "450",
             body180: true,
         },
+        step360: { label: "360 스텝", minV: 0.2, dur: 1360, pts: 360, cap: "360" },
+        step180: { label: "180 스텝", minV: 0.2, dur: 680, pts: 180, cap: "180", body180: true },
         ghost: { label: "고스트라이드", minV: 0.3, cap: "150+" },
-        pan: { label: "피터팬", minV: 0.2, dur: 1000, pts: 250, cap: "250" },
+        // 기존 속도: dur 1000ms
+        pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
         pirouette: {
             label: "피루엣",
             minV: 0.25,
-            dur: 720,
+            dur: 920,
             pts: 300,
             cap: "300",
         },
@@ -265,51 +280,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
     };
     const SLOTS = [
         ["shuv", "bigspin", "biggerspin"],
-        ["nocomply", "ncbig", "ghost"],
+        ["nocomply", "ncbig", "ghost", "step180", "step360"],
         ["pan", "pirouette", "varial"],
         ["pivot", null, null],
     ];
-    function panFeet(pa0, pb0, t) {
-        const aBack = pa0 < pb0,
-            x0 = Math.min(pa0, pb0),
-            x1 = Math.max(pa0, pb0),
-            s = 0.07;
-        const K = [
-            [x0, x1],
-            [x1 + s, x1],
-            [x1 + s, x1 + 2 * s],
-            [x1 + s, x1],
-            [x0, x1],
-        ];
-        const seg = Math.min(3, Math.floor(t * 4)),
-            u = Math.min(1, t * 4 - seg),
-            e = ease(u);
-        const p = K[seg],
-            q = K[seg + 1];
-        const bk = lerp(p[0], q[0], e),
-            fr = lerp(p[1], q[1], e);
-        const backMoves = p[0] !== q[0],
-            lift = Math.sin(Math.PI * u);
-        const o = {
-            hop: lift * 0.6,
-            lean: (seg < 2 ? 0.08 : -0.08) * lift,
-            cross: lift,
-        };
-        if (aBack) {
-            o.pa = bk;
-            o.pb = fr;
-            o.la = backMoves ? lift : 0;
-            o.lb = backMoves ? 0 : lift;
-            o.movA = backMoves;
-        } else {
-            o.pb = bk;
-            o.pa = fr;
-            o.lb = backMoves ? lift : 0;
-            o.la = backMoves ? 0 : lift;
-            o.movA = !backMoves;
-        }
-        return o;
-    }
 
     /* ---------- 기록 ---------- */
     const best = { score: 0, combo: 0, landed: {} };
@@ -403,6 +377,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
             score: 0,
             pos: startPosition,
             startFeet: [...startFeet],
+            panFootYawA: null,
+            panFootYawB: null,
             awaitingFirstPush: mode === "play",
             crossStepStance: false,
             act: null,
@@ -674,6 +650,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
         fx("bail");
     }
     function startAct(type, extra) {
+        G.panFootYawA = G.panFootYawB = null;
         G.act = Object.assign({ type, el: 0, prevE: 0 }, extra);
         if (type === "step") G.act.fromFeet = [...(G.startFeet || POS[G.pos])];
     }
@@ -782,7 +759,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
     }
     function endAct() {
         const A = G.act;
-        const landingPose = newPoses && (A.type === "ncbig" || A.type === "nocomply")
+        const landingPose = newPoses && (A.type === "ncbig" || A.type === "nocomply" || A.type === "step180" || A.type === "step360" || A.type === "pan")
             ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") {
@@ -819,6 +796,11 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
                 G.startFeet = [landingPose.J.aA, landingPose.J.aB].map(
                     foot => 0.5 + (foot.x - landingPose.B.px) / LM,
                 );
+                if (A.type === "pan") {
+                    const baseYaw = G.facing ? Math.PI : 0;
+                    G.panFootYawA = landingPose.footYawA - baseYaw;
+                    G.panFootYawB = landingPose.footYawB - baseYaw;
+                }
             }
             if (tr.body180 || (newPoses && A.type === "nocomply")) G.facing ^= 1;
             addTrick(tr.label, tr.pts, { key: A.type });
@@ -827,7 +809,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
                 G.landEl = A.el - touchdownOf(A);
             }
         }
-        if (A.type === "pivot" || A.type === "pirouette") G.landEl = 0;
+        if (A.type === "pivot" || A.type === "pirouette" || A.type === "step180" || A.type === "step360") G.landEl = 0;
         afterAct();
     }
     function endGhost(A) {
@@ -1971,7 +1953,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
         V, SEG, G_ANK, Y_ANK, L, TAIL, TRUCK, Xw, K, LM, POS, HANG,
         stepPositions: crossStepPositions,
         posePage, newPoses, reduce, TRICKS,
-        clamp, lerp, ease, bump, panFeet, landingDown, touchdownOf,
+        clamp, lerp, ease, bump, landingDown, touchdownOf,
         PIVOT_BACK, PIVOT_FRONT, PIVOT_PREP, PIVOT_AXIS, PIVOT_SHIFT,
         get G() {
             return G;
@@ -2814,7 +2796,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
         const play = G.mode === "play",
             A = G.act,
             ghost = !!(A && A.type === "ghost");
-        slotInfo().forEach((s, i) => {
+        const slots = slotInfo();
+        tbs.forEach((button, i) => { button.hidden = !slots[i]; });
+        const trickRow = $("#trickrow");
+        if (trickRow) {
+            tog(trickRow, "four", slots.length === 4);
+            tog(trickRow, "five", slots.length === 5);
+        }
+        slots.forEach((s, i) => {
             setText(tLbl[i], "tl" + i, s.l);
             setText(tEn[i], "te" + i, s.e);
             setText(tCap[i], "tc" + i, s.c);
@@ -2976,6 +2965,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
         Space: "slot0",
         Digit2: "slot1",
         KeyK: "slot1",
+        Digit4: "slot3",
+        Digit5: "slot4",
         Digit3: "slot2",
         KeyL: "slot2",
     };
@@ -4210,6 +4201,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261110-shoulder-lower";
             en: "Bigger spin",
             pos: 3,
             trick: "biggerspin",
+        },
+        {
+            id: "step360", group: "트릭", label: "360 스텝", en: "360 step",
+            pos: 1, trick: "step360",
+        },
+        {
+            id: "step180", group: "트릭", label: "180 스텝", en: "180 step",
+            pos: 1, trick: "step180",
         },
         {
             id: "nocomply",

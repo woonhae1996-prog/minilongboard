@@ -1,7 +1,7 @@
-import { sampleRunFoot } from "./run-gait.js?v=20261110-shoulder-lower";
+import { sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js?v=20261110-shoulder-lower";
-import { createTricks } from "./tricks.js?v=20261110-shoulder-lower";
+import { createSolver } from "./solve.js?v=20261111-peter-pan-duration-1200";
+import { createTricks } from "./tricks.js?v=20261111-peter-pan-duration-1200";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -34,6 +34,8 @@ export function createPose3(env, getStance = stanceParameters) {
             ctx.side = side;
             const sign = ctx.stance.rotationSign;
             ctx.yaw *= sign;
+            if (ctx.footYawA != null) ctx.footYawA *= sign;
+            if (ctx.footYawB != null) ctx.footYawB *= sign;
             if (ctx.shoulderYaw != null) ctx.shoulderYaw *= sign;
             ctx.za *= side;
             ctx.zb *= side;
@@ -67,11 +69,15 @@ export function createPose3(env, getStance = stanceParameters) {
             if (TRICKS[A.type] && TRICKS[A.type].air) {
                 hipDrop += landingDown(A.el, touchdownOf(A));
             } else if (
-                A.type === "pivot" || A.type === "pirouette" ||
+                A.type === "pivot" || A.type === "pirouette" || A.type === "step180" || A.type === "step360" ||
                 (A.type === "ghost" &&
                     (A.phase === "jump" || A.phase === "flip"))
             ) {
-                hipDrop += landingDown(A.el, A.dur);
+                hipDrop += landingDown(
+                    A.el,
+                    A.dur,
+                    A.type === "step180" || A.type === "step360" ? 0.08 : 0.16,
+                );
             }
         }
         ctx.hipDrop = hipDrop;
@@ -118,8 +124,14 @@ export function createPose3(env, getStance = stanceParameters) {
         const bodyYaw = crossFeet ? footYaw : ctx.stance.baseYaw + yaw;
         const pushing = A && A.type === "push";
         // The support toes face board travel (+X) in either stance.
-        const footYawA = pushing && ctx.pushSupportA ? Math.PI / 2 : footYaw;
-        const footYawB = pushing && !ctx.pushSupportA ? Math.PI / 2 : footYaw;
+        const footYawA = ctx.footYawA != null ? ctx.stance.baseYaw + ctx.footYawA
+            : pushing && ctx.pushSupportA ? Math.PI / 2
+            : !A && env.G.panFootYawA != null ? ctx.stance.baseYaw + env.G.panFootYawA
+            : footYaw;
+        const footYawB = ctx.footYawB != null ? ctx.stance.baseYaw + ctx.footYawB
+            : pushing && !ctx.pushSupportA ? Math.PI / 2
+            : !A && env.G.panFootYawB != null ? ctx.stance.baseYaw + env.G.panFootYawB
+            : footYaw;
         // Match sockets to the actual body frame, including forward-facing pushes.
         // Steps retain their starting connection while the legs cross.
         const fromFeet = env.G.startFeet || (crossFeet ? POS[A.from] : null);
@@ -128,15 +140,19 @@ export function createPose3(env, getStance = stanceParameters) {
         const projection = dx * Math.cos(bodyYaw) - dz * Math.sin(bodyYaw);
         // Preserve each action's leg identity through crossing and rotation.
         const keepNoComplyLegs = newPoses && A && A.type === "nocomply";
-        if (crossFeet || (!A && env.G.crossStepStance)) {
+        const turnStep = A && (A.type === "step180" || A.type === "step360");
+        const footStep = turnStep || (A && A.type === "pan");
+        if (A && A.type === "pan" && ctx.panSocketSign != null) {
+            sockSign = ctx.panSocketSign * ctx.side;
+        } else if (crossFeet || (!A && env.G.crossStepStance)) {
             sockSign = -ctx.side;
         } else if (!keepNoComplyLegs && Math.abs(projection) > 1e-6) {
             sockSign = Math.sign(projection);
         }
-        const hipX =
+        const hipX = ctx.supportHipX ?? (
             A && A.type === "push"
                 ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.08
-                : (fa.x + fb.x) / 2 + lean * 0.15;
+                : (fa.x + fb.x) / 2 + lean * 0.15);
         const hipY = Y_ANK + 0.78 + hop + shake - hipDrop;
         // Standing feet stay perpendicular to the board; 45° is step-only.
         let J = solve({
@@ -144,7 +160,7 @@ export function createPose3(env, getStance = stanceParameters) {
             fa,
             fb,
             yaw: bodyYaw,
-            shoulderYaw: ctx.stance.baseYaw + (ctx.shoulderYaw ?? yaw),
+            shoulderYaw: crossFeet ? bodyYaw : ctx.stance.baseYaw + (ctx.shoulderYaw ?? yaw),
             lean,
             leanF: ctx.leanF || 0,
             arms,
@@ -153,11 +169,15 @@ export function createPose3(env, getStance = stanceParameters) {
             supportArmSign: ctx.pushSupportA ? sockSign : -sockSign,
             sockA: sockSign,
             kneesOut,
-            footYawA,
-            footYawB,
-            fitFeet: pushing,
-            pinFootA: pushing,
-            pinFootB: pushing,
+            kneeOutward: footStep ? 0.18 : undefined,
+            kneeBendA: ctx.kneeBendA,
+            kneeBendB: ctx.kneeBendB,
+            // Shoe heading stays fixed independently of the knee bend direction.
+            footYawA: turnStep ? null : footYawA,
+            footYawB: turnStep ? null : footYawB,
+            fitFeet: pushing || footStep,
+            pinFootA: pushing || footStep,
+            pinFootB: pushing || footStep,
         });
         if (runMix > 0) J = mixJ(J, solveRun(cyc, c0, ctx.stance.side), runMix);
         if (fall > 0) {
@@ -235,7 +255,11 @@ export function createPose3(env, getStance = stanceParameters) {
         // 게임에서는 착지와 동시에 트릭이 끝나므로, 남은 다운(무릎 굽혔다 펴기)을 여기서 마저 한다.
         const G = env.G;
         if (newPoses && G.landEl < 320 && !(A && ((TRICKS[A.type] && TRICKS[A.type].air) || A.type === "ghost")))
-            ctx.hipDrop += landingDown(G.landEl, 0);
+            ctx.hipDrop += landingDown(
+                G.landEl,
+                0,
+                A && (A.type === "step180" || A.type === "step360") ? 0.08 : 0.16,
+            );
         const result = solvePose(ctx);
         // Persistent lateral travel belongs to the world frame, after stance mirroring.
         const worldZ = G.worldZ || 0;

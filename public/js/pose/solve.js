@@ -1,10 +1,10 @@
-import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261110-shoulder-lower";
+import { runMotion, runPhase, sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 
 export function createSolver(env) {
     const { V, SEG, G_ANK } = env;
     const shoulderDrop = 0.035;
 
-    function ik(socket, foot, pole, pinned = false) {
+    function ik(socket, foot, pole, pinned = false, kneeBend = 1) {
         const d = V().subVectors(foot, socket),
             len = d.length() || 0.001;
         const reach = Math.min(len, 2 * SEG - 0.002),
@@ -15,7 +15,7 @@ export function createSolver(env) {
         if (p.lengthSq() < 1e-6) p.set(0, 0, 1);
         p.normalize();
         return {
-            knee: mid.addScaledVector(p, h),
+            knee: mid.addScaledVector(p, h * kneeBend),
             ankle: pinned ? foot.clone() : socket.clone().addScaledVector(dir, reach),
         };
     }
@@ -58,19 +58,21 @@ export function createSolver(env) {
             const outward = V(foot.x - hip.x, 0, foot.z - hip.z);
             if (outward.lengthSq() < 1e-6)
                 outward.copy(axis).multiplyScalar(socketSign);
-            return f.clone().addScaledVector(outward.normalize(), 0.8);
+            return f.clone().addScaledVector(outward.normalize(), o.kneeOutward ?? 0.8);
         };
         const legA = ik(
             sockA,
             V(o.fa.x, o.fa.y, o.fa.z),
             kneePole(o.fa, sA, o.footYawA, o.kneeLiftA),
             o.pinFootA,
+            o.kneeBendA,
         );
         const legB = ik(
             sockB,
             V(o.fb.x, o.fb.y, o.fb.z),
             kneePole(o.fb, sB, o.footYawB, o.kneeLiftB),
             o.pinFootB,
+            o.kneeBendB,
         );
         const down = V(0, -1, 0),
             J = {
