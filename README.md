@@ -3,8 +3,8 @@
 30초 동안 롱보드 위를 걸어 다니며 댄싱 트릭을 이어 가는 3D 웹 게임이에요.
 A 3D web game: walk the longboard and chain dancing tricks for 30 seconds.
 
-- 사이트 · Site: (Vercel 주소 · Vercel URL)
-- 자세 미리보기 · Pose preview: `/pose.html`
+- 사이트 · Site: https://minilongboard.vercel.app
+- 자세 미리보기 · Pose preview: https://minilongboard.vercel.app/pose.html
 - made by @cloud._.sea · 자세 개선과 코드 정리 · poses & refactor: hallov012
 
 ## 폴더 구성 · Layout
