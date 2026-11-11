@@ -6,27 +6,27 @@ export function createTricks(env) {
     } = env;
 
     function poseStep(ctx) {
-        const { A, t, B, side, faceFwd } = ctx;
+        const { A, t, e, B, side, faceFwd } = ctx;
         let {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
         const f = A.fromFeet || env.G.startFeet || stepPositions[A.from],
             to = stepPositions[A.to];
-        const first = ease(clamp(t / 0.65, 0, 1));
-        const second = ease(clamp((t - 0.35) / 0.65, 0, 1));
-        const forward = A.to > A.from;
-        const moveA = forward ? second : first;
-        const moveB = forward ? first : second;
-        pa = lerp(f[0], to[0], moveA);
-        pb = lerp(f[1], to[1], moveB);
-        la = Math.sin(Math.PI * moveA) * 0.13;
-        lb = Math.sin(Math.PI * moveB) * 0.13;
-        // +X is forward; regular steps left, goofy steps right.
-        za = -0.08 * side * Math.sin(Math.PI * moveA);
-        zb = -0.08 * side * Math.sin(Math.PI * moveB);
+        pa = lerp(f[0], to[0], e);
+        pb = lerp(f[1], to[1], e);
+        const lift = Math.sin(Math.PI * t) * 0.13;
+        // +X is forward; regular crosses left, goofy crosses right.
+        const crossZ = -0.08 * side * Math.sin(Math.PI * t);
         hop = Math.sin(Math.PI * t) * 0.035;
         hipDrop = bump(t, 0, 0.3) * 0.025 + bump(t, 0.6, 1) * 0.055;
+        if (f[0] !== to[0]) {
+            la = lift;
+            za = crossZ;
+        } else {
+            lb = lift;
+            zb = crossZ;
+        }
         arms = 0.7;
         lean = 0.06;
         yaw = faceFwd;

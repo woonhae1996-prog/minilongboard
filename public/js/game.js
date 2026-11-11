@@ -3,8 +3,9 @@ import {
     footPositions,
     footPair,
     standingPositions,
-} from "./pose/foot-positions.js?v=20261111-pose-stance";
-import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
+    crossStepPositions,
+} from "./pose/foot-positions.js?v=20261111-cross-step-planted";
+import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
 
 (function () {
     "use strict";
@@ -860,11 +861,13 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") {
             G.startFeet = null;
+            G.crossStepStance = false;
         }
         G.act = null;
         if (A.type === "step") {
             G.pos = A.to;
-            G.startFeet = [...POS[A.to]];
+            G.startFeet = [...crossStepPositions[A.to]];
+            G.crossStepStance = true;
             addTrick("크로스스텝", 20, {
                 mult: false,
                 quiet: true,
@@ -2063,7 +2066,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
         LM,
         POS,
         HANG,
-        stepPositions: POS,
+        stepPositions: crossStepPositions,
         posePage,
         newPoses,
         reduce,
@@ -4473,9 +4476,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
         if (!poseSpec) return;
         G.pos = poseSpec.pos;
         G.facing = poseFacing;
+        G.crossStepStance = false;
         G.startFeet =
             poseSpec.act?.type === "step"
-                ? [...POS[poseSpec.act.from]]
+                ? [...crossStepPositions[poseSpec.act.from]]
                 : null;
         G.act = makePose(poseSpec);
     }
@@ -4485,9 +4489,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
         poseSpec = spec;
         poseFacing = facing === 1 ? 1 : 0;
         G.mode = "pose";
+        G.crossStepStance = false;
         G.startFeet =
             spec.act?.type === "step"
-                ? [...POS[spec.act.from]]
+                ? [...crossStepPositions[spec.act.from]]
                 : null;
         G.queue = null;
         G.shake = 0;
@@ -4545,7 +4550,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
             const index = (A.pathIndex || 0) + 1;
             const next = index % (path.length - 1);
             G.pos = A.to;
-            G.startFeet = [...POS[A.to]];
+            G.startFeet = [...crossStepPositions[A.to]];
+            G.crossStepStance = true;
             G.act = {
                 type: "step",
                 from: G.pos,

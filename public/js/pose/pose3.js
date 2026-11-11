@@ -1,7 +1,7 @@
 import { sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
 import { createSolver } from "./solve.js?v=20261111-peter-pan-duration-1200";
-import { createTricks } from "./tricks.js?v=20261111-tail-flips";
+import { createTricks } from "./tricks.js?v=20261111-cross-step-planted";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -144,7 +144,7 @@ export function createPose3(env, getStance = stanceParameters) {
         const footStep = turnStep || (A && A.type === "pan");
         if (A && A.type === "pan" && ctx.panSocketSign != null) {
             sockSign = ctx.panSocketSign * ctx.side;
-        } else if (crossFeet) {
+        } else if (crossFeet || (!A && env.G.crossStepStance)) {
             sockSign = -ctx.side;
         } else if (!keepNoComplyLegs && Math.abs(projection) > 1e-6) {
             sockSign = Math.sign(projection);

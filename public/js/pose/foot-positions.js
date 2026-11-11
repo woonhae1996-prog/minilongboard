@@ -27,3 +27,11 @@ export const footPair = (position, frontLeg = "A") => frontLeg === "A"
 // One A/B mapping for standing, walking and tricks on both pages.
 export const standingPositions = Object.keys(standingCenters)
     .map(name => footPair(footPositions[name], "B"));
+
+// Walking uses alternating stances so one foot can stay planted per step.
+export const crossStepPositions = [
+    [0.2, 0.55],
+    [0.66, 0.55],
+    [0.66, 0.8],
+    [0.93, 0.8],
+];
