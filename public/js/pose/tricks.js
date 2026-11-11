@@ -210,7 +210,6 @@ export function createTricks(env) {
         });
     }
 
-    // Preview-only action: POSE_DEMOS supplies this without a gameplay TRICKS entry.
     function poseFlip(ctx) {
         const { A, t, B, side, c0, shake } = ctx;
         // Kickflip flicks behind the torso; heelflip flicks forward.
@@ -291,7 +290,7 @@ export function createTricks(env) {
             B.pitch = 0.25 * bump(t, 0.08, 0.55);
             hop = air * 0.32;
             const startCenter = (pa + pb) / 2;
-            const landingCenter = (POS[1][0] + POS[1][1]) / 2;
+            const landingCenter = (POS[env.G.pos][0] + POS[env.G.pos][1]) / 2;
             const centerX = Xw(
                 TAIL + lerp(startCenter, landingCenter, spin) * L,
             );

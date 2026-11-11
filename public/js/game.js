@@ -4,7 +4,7 @@ import {
     footPair,
     standingPositions,
 } from "./pose/foot-positions.js?v=20261111-pose-stance";
-import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
+import { createPose3 } from "./pose/pose3.js?v=20261111-tail-flips";
 
 (function () {
     "use strict";
@@ -68,6 +68,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
     const EN = {
         크로스스텝: "Cross-step",
         "노즈 워크": "Nose walk",
+        킥플립: "Kickflip",
+        힐플립: "Heelflip",
         셔빗: "Shove-it",
         노컴플라이: "No comply",
         고스트라이드: "Ghost ride",
@@ -87,6 +89,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         "노컴 빅스핀": "No comply big spin",
     };
     const en = (ko) => EN[ko] || ko;
+    const GHOST_BASE_PTS = 80;
+    const GHOSTFLIP_BASE_PTS = 140;
     const CAT = [
         {
             id: "nose",
@@ -98,11 +102,29 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             howEn: "Cross-step from the tail all the way to the nose.",
         },
         {
+            id: "kickflip",
+            label: "킥플립",
+            zone: "테일",
+            zoneEn: "Tail",
+            pts: "350",
+            how: "테일을 팝하고 보드를 발끝 쪽으로 한 바퀴 뒤집어 착지해요",
+            howEn: "Pop the tail and flip the board once toward your toes before landing.",
+        },
+        {
+            id: "heelflip",
+            label: "힐플립",
+            zone: "테일",
+            zoneEn: "Tail",
+            pts: "350",
+            how: "테일을 팝하고 보드를 뒤꿈치 쪽으로 한 바퀴 뒤집어 착지해요",
+            howEn: "Pop the tail and flip the board once toward your heels before landing.",
+        },
+        {
             id: "shuv",
             label: "셔빗",
             zone: "노즈",
             zoneEn: "Nose",
-            pts: "200",
+            pts: "250",
             how: "뛰는 사이 보드가 발밑에서 180° 돌아요",
             howEn: "Hop while the board spins 180° under your feet.",
         },
@@ -127,8 +149,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         {
             id: "nocomply",
             label: "노컴플라이",
-            zone: "가운데 뒤",
-            zoneEn: "Rear middle",
+            zone: "테일",
+            zoneEn: "Tail",
             pts: "220",
             how: "앞발을 땅에 딛고 뒷발로 테일을 팝, 떠오른 보드에 다시 올라타요",
             howEn: "Plant your front foot, pop the tail with your back foot, and jump back on.",
@@ -138,7 +160,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             label: "노컴 빅스핀",
             zone: "노즈",
             zoneEn: "Nose",
-            pts: "450",
+            pts: "300",
             how: "앞발을 딛고 테일을 팝, 보드는 360° 돌고 몸은 180° 돌며 올라타요",
             howEn: "Plant your front foot and pop the tail; the board spins 360° while you turn 180° back onto it.",
         },
@@ -165,7 +187,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             label: "고스트라이드",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "150+",
+            pts: GHOST_BASE_PTS + "+",
             how: "보드에서 내려 옆에서 달리다가 올라타기. 오래 달릴수록 점수가 커져요",
             howEn: "Step off, run beside the board, then hop back on. The longer you run, the more it scores.",
         },
@@ -174,7 +196,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             label: "고스트라이드 킥플립",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "420+",
+            pts: GHOSTFLIP_BASE_PTS + "+",
             how: "고스트라이드 중 0.8초 넘게 달린 뒤 보드를 킥플립시켜 받아 타기",
             howEn: "During a ghost ride, run for over 0.8s, kickflip the board and land on it.",
         },
@@ -220,18 +242,37 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             zone: "보너스",
             zoneEn: "Bonus",
             pts: "100",
-            how: "셔빗, 빅스핀, 노컴플라이로 떠 있는 사이 돌이 지나가면",
-            howEn: "Let a pebble pass while you're airborne in a shove-it, bigspin or no comply.",
+            how: "킥플립, 힐플립, 셔빗, 빅스핀, 노컴플라이로 보드가 도는 동안 돌이 지나가면",
+            howEn: "Let a pebble pass while the board spins or flips during a kickflip, heelflip, shove-it, bigspin or no comply.",
         },
     ];
     const TRICKS = {
+        kickflip: {
+            label: "킥플립",
+            minV: 0.2,
+            dur: 1400,
+            pts: 350,
+            air: [0.26, 0.8],
+            boardSpinOrFlip: true,
+            cap: "350",
+        },
+        heelflip: {
+            label: "힐플립",
+            minV: 0.2,
+            dur: 1400,
+            pts: 350,
+            air: [0.26, 0.8],
+            boardSpinOrFlip: true,
+            cap: "350",
+        },
         shuv: {
             label: "셔빗",
             minV: 0.2,
             dur: 540,
-            pts: 200,
+            pts: 250,
             air: [0.1, 0.9],
-            cap: "200",
+            boardSpinOrFlip: true,
+            cap: "250",
         },
         bigspin: {
             label: "빅스핀",
@@ -239,6 +280,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             dur: 680,
             pts: 380,
             air: [0.1, 0.9],
+            boardSpinOrFlip: true,
             cap: "380",
             body180: true,
         },
@@ -248,6 +290,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             dur: 800,
             pts: 520,
             air: [0.1, 0.9],
+            boardSpinOrFlip: true,
             cap: "520",
             body180: true,
         },
@@ -257,15 +300,17 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             dur: 660,
             pts: 220,
             air: [0.3, 0.8],
+            boardSpinOrFlip: true,
             cap: "220",
         },
         ncbig: {
             label: "노컴 빅스핀",
             minV: 0.25,
             dur: 760,
-            pts: 450,
+            pts: 300,
             air: [0.3, 0.85],
-            cap: "450",
+            boardSpinOrFlip: true,
+            cap: "300",
             body180: true,
         },
         step360: {
@@ -283,7 +328,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
             cap: "120",
             body180: true,
         },
-        ghost: { label: "고스트라이드", minV: 0.3, cap: "150+" },
+        ghost: { label: "고스트라이드", minV: 0.3, cap: GHOST_BASE_PTS + "+" },
         // 기존 속도: dur 1000ms
         pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
         pirouette: {
@@ -304,8 +349,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 200, cap: "200" },
     };
     const SLOTS = [
-        [null, null, null],
-        ["nocomply", null, "ghost", "step180", "step360"],
+        ["kickflip", "heelflip", "nocomply"],
+        [null, null, "ghost", "step180", "step360"],
         ["pan", "pirouette", "varial"],
         ["pivot", "shuv", "ncbig", "bigspin", "biggerspin"],
     ];
@@ -880,8 +925,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         G.landEl = A.el - A.dur;
         const bonus = Math.round(A.run * 90);
         if (A.phase === "flip")
-            addTrick("고스트라이드 킥플립", 420 + bonus, { key: "ghostflip" });
-        else addTrick("고스트라이드", 150 + bonus, { key: "ghost" });
+            addTrick("고스트라이드 킥플립", GHOSTFLIP_BASE_PTS + bonus, { key: "ghostflip" });
+        else addTrick("고스트라이드", GHOST_BASE_PTS + bonus, { key: "ghost" });
         sfx.land();
         afterAct();
         rollOffer();
@@ -899,7 +944,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         if (A) {
             const tr = TRICKS[A.type],
                 t = A.el / A.dur;
-            if (tr && tr.air && t > tr.air[0] && t < tr.air[1]) {
+            if (tr?.boardSpinOrFlip && t > tr.air[0] && t < tr.air[1]) {
                 addTrick("돌 넘기", 100, { key: "hop" });
                 return;
             }
@@ -1054,7 +1099,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         const A = G.act;
         if (
             !G.awaitingFirstPush &&
-            G.pos > 0 &&
             G.v < 0.05 &&
             (!A || (A.type !== "bail" && A.type !== "pivot"))
         )
@@ -2825,11 +2869,11 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
         if (play && A && A.type === "ghost" && A.phase === "run") {
             const b = Math.round(A.run * 90);
             return [
-                { l: "올라타기", e: "Hop on", c: "+" + (150 + b), dim: false },
+                { l: "올라타기", e: "Hop on", c: "+" + (GHOST_BASE_PTS + b), dim: false },
                 {
                     l: "킥플립 캐치",
                     e: "Kickflip catch",
-                    c: A.run < 0.8 ? "더 달려 keep running" : "+" + (420 + b),
+                    c: A.run < 0.8 ? "더 달려 keep running" : "+" + (GHOSTFLIP_BASE_PTS + b),
                     dim: A.run < 0.8,
                 },
                 {
