@@ -147,7 +147,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             label: "360 스텝",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "360",
+            pts: "240",
             how: "레귤러 기준 180 스텝 뒤 오른발을 고정하고 왼발을 그 앞꿈치의 보드 왼편에 모아요. 오른발을 시계 방향으로 돌려 가운데 뒤에 착지해요",
             howEn: "Continue the 180 step by gathering the left foot to the right toes, then sweeping the right foot clockwise back to rear middle.",
         },
@@ -156,7 +156,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             label: "180 스텝",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "180",
+            pts: "120",
             how: "레귤러 기준 왼발을 오른발 앞꿈치의 보드 오른편에 수직으로 모은 뒤, 오른발을 반시계로 돌리며 몸도 180° 돌아요",
             howEn: "Step with each foot in turn to rotate your body 180° while the board stays straight.",
         },
@@ -210,7 +210,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             label: "180 피봇",
             zone: "노즈",
             zoneEn: "Nose",
-            pts: "300",
+            pts: "200",
             how: "앞발은 노즈, 뒷발은 가운데에 두고 다리를 벌린 채 노즈를 축으로 보드를 180° 돌려요. 끝나면 테일에 서 있게 돼요",
             howEn: "Front foot on the nose, back foot in the middle. With your legs apart, swing the board 180° around the nose. You end up standing on the tail.",
         },
@@ -272,15 +272,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             label: "360 스텝",
             minV: 0.2,
             dur: 1360,
-            pts: 360,
-            cap: "360",
+            pts: 240,
+            cap: "240",
         },
         step180: {
             label: "180 스텝",
             minV: 0.2,
             dur: 680,
-            pts: 180,
-            cap: "180",
+            pts: 120,
+            cap: "120",
             body180: true,
         },
         ghost: { label: "고스트라이드", minV: 0.3, cap: "150+" },
@@ -301,7 +301,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             air: [0.15, 0.85],
             cap: "280",
         },
-        pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 300, cap: "300" },
+        pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 200, cap: "200" },
     };
     const SLOTS = [
         ["shuv", "bigspin", "biggerspin"],
@@ -810,7 +810,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         } else if (A.type === "pivot") {
             G.pos = 0;
             G.facing ^= 1;
-            addTrick("180 피봇", 300, { key: "pivot" });
+            addTrick("180 피봇", TRICKS.pivot.pts, { key: "pivot" });
             sfx.land();
         } else if (TRICKS[A.type] && TRICKS[A.type].pts) {
             const tr = TRICKS[A.type];
