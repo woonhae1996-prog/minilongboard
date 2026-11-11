@@ -199,14 +199,71 @@ export function createTricks(env) {
         hop = Math.sin(Math.PI * t) * 0.38;
         B.py += Math.sin(Math.PI * t) * 0.18;
         B.yaw = Math.PI * t;
-        if (newPoses) {
-            // Match board angular speed, hold at 45°, then return.
-            yaw = Math.PI * Math.min(t, 0.25, 1 - t);
-        }
+        yaw = 0;
+        ctx.shoulderYaw = 0;
         arms = 0.95;
         Object.assign(ctx, {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
+        });
+    }
+
+    function posePopShuv(ctx) {
+        const { A, t, B, c0, shake } = ctx;
+        const smooth = (q) => q * q * q * (q * (q * 6 - 15) + 10);
+        const phase = (start, end) => clamp((t - start) / (end - start), 0, 1);
+        const pulse = (q) => 64 * q ** 3 * (1 - q) ** 3;
+        const flight = phase(0.26, 0.80);
+        const lift = pulse(flight);
+        const pop = smooth(phase(0.18, 0.26)) * (1 - smooth(phase(0.60, 0.80)));
+        const release = smooth(phase(0.18, 0.26));
+        const jump = smooth(phase(0.18, 0.34)) * (1 - smooth(phase(0.60, 0.80)));
+        const hop = 0.62 * jump;
+        // Pop and reverse shove start together; keep the deck tilted through the spin.
+        B.pitch = 0.34 * pop;
+        const tailX = -0.5 * LM * Math.cos(B.pitch) + B.ly * Math.sin(B.pitch);
+        const tailY = -0.5 * LM * Math.sin(B.pitch) - B.ly * Math.cos(B.pitch);
+        B.px = c0 - 0.5 * LM - tailX;
+        B.py += -B.ly - tailY + 0.14 * lift;
+        const hardflip = A.type === "hardflip";
+        const direction = A.type === "frontpop" || hardflip ? 1 : -1;
+        const rotation = smooth(phase(0.18, 0.72));
+        B.yaw = direction * Math.PI * rotation;
+        // Hold the tilted plane in world space, then spin the deck inside that plane.
+        B.rotationOrder = "ZYX";
+        const hasFlip = A.type === "varialkickflip" || hardflip;
+        if (hasFlip) B.roll = (hardflip ? ctx.side : -ctx.side) * 2 * Math.PI * rotation;
+        // Bound the tilted, spinning and flipping deck using the rendered ZYX rotation.
+        const roll = B.roll || 0;
+        const heightX = Math.sin(B.pitch) * Math.cos(B.yaw);
+        const heightY = Math.sin(B.pitch) * Math.sin(B.yaw) * Math.sin(roll)
+            + Math.cos(B.pitch) * Math.cos(roll);
+        const heightZ = Math.sin(B.pitch) * Math.sin(B.yaw) * Math.cos(roll)
+            - Math.cos(B.pitch) * Math.sin(roll);
+        const boardTop = B.py - B.ly * heightY + 0.5 * LM * Math.abs(heightX)
+            + 0.025 * Math.abs(heightY) + 0.12 * Math.abs(heightZ);
+        const clearance = release * (1 - smooth(phase(0.72, 0.80)));
+        const foot = (position, rear) => {
+            const x = (position - 0.5) * LM;
+            const y = Y_ANK - 0.09 - B.ly;
+            const ankleY = lerp(B.py + x * Math.sin(B.pitch) + y * Math.cos(B.pitch),
+                Y_ANK + shake + hop + (rear ? 0.10 : 0.12) * jump, release);
+            return {
+                x: lerp(B.px + x * Math.cos(B.pitch) - y * Math.sin(B.pitch), Xw(TAIL + position * L), release),
+                y: Math.max(ankleY, boardTop + 0.12 * clearance),
+                z: 0,
+            };
+        };
+        Object.assign(ctx, {
+            ga: foot(ctx.pa, ctx.pa < ctx.pb),
+            gb: foot(ctx.pb, ctx.pb < ctx.pa),
+            hop,
+            yaw: 0,
+            shoulderYaw: 0,
+            hipZ: 0,
+            hipDrop: 0.17 * pulse(phase(0, 0.26)),
+            arms: 0.45 + 0.50 * lift,
+            lean: 0,
         });
     }
 
@@ -909,6 +966,10 @@ export function createTricks(env) {
         step360: poseTurnStep,
         push: posePush,
         shuv: poseShuv,
+        popshuv: posePopShuv,
+        frontpop: posePopShuv,
+        varialkickflip: posePopShuv,
+        hardflip: posePopShuv,
         kickflip: poseFlip,
         heelflip: poseFlip,
         nocomply: poseNocomply,
