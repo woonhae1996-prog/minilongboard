@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>롱보더 사주</title>
+<meta name="description" content="생일만 넣으면 보드 위의 내가 나와. 일주로 보는 라이딩 타입, 2027년 운세, 찰떡 크루.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="롱보더 사주">
+<meta property="og:description" content="생일만 넣으면 보드 위의 내가 나와. 일주로 보는 라이딩 타입, 2027년 운세, 찰떡 크루.">
+<meta property="og:image" content="https://longboard-saju.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://longboard-saju.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://longboard-saju.vercel.app/og-image.png">
+<meta name="theme-color" content="#101312">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='9' y='2' width='14' height='28' rx='7' fill='%238C5F06'/%3E%3Crect x='5' y='6' width='4' height='6' rx='1.5' fill='%23F5C53B'/%3E%3Crect x='23' y='6' width='4' height='6' rx='1.5' fill='%23F5C53B'/%3E%3Crect x='5' y='20' width='4' height='6' rx='1.5' fill='%23F5C53B'/%3E%3Crect x='23' y='20' width='4' height='6' rx='1.5' fill='%23F5C53B'/%3E%3C/svg%3E">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@900&display=swap">
+<style>
+/* Layout: 스케이트장 콘크리트 바닥 위에 결과를 롱보드 데크(바닥면) 모양 카드로 올린다. 휠 색 = 행운의 휠 색, 데크 색 = 일간 오행. */
+:root {
+  --bg: #ECEEEA; --surface: #F8F9F6; --ink: #171B19; --muted: #59625D; --line: #D2D7D2; --seam: #DFE3DE;
+  --wood: #237A4D; --fire: #C23A24; --earth: #8F6106; --metal: #536070; --water: #2A4E8C;
+  --deck-wood: #1F6B45; --deck-fire: #B3311E; --deck-earth: #8C5F06; --deck-metal: #4A5662; --deck-water: #1D386B;
+  --on-deck: #FFF7EA; --deck-line: rgb(255 247 234 / .32); --grain: rgb(255 255 255 / .06);
+  --truck: #9AA3A8; --truck-hi: #DDE2E4; --truck-lo: #6E777C;
+  --w-wood: #3FBF6F; --w-fire: #F0473A; --w-earth: #F5C53B; --w-metal: #F4F5F2; --w-water: #24315C; --w-edge: rgb(0 0 0 / .38);
+  --el: var(--earth); --deck: var(--deck-earth); --wheel: var(--w-earth);
+  --year: var(--fire);
+  --f-display: "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-han: "Noto Serif KR", "Songti SC", "Batang", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101312; --surface: #191D1B; --ink: #E6EAE5; --muted: #9AA49E; --line: #2C332F; --seam: #1A1F1C;
+    --wood: #63C892; --fire: #FF7D61; --earth: #E8B94A; --metal: #B9C4CF; --water: #8DB0EE;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101312; --surface: #191D1B; --ink: #E6EAE5; --muted: #9AA49E; --line: #2C332F; --seam: #1A1F1C;
+  --wood: #63C892; --fire: #FF7D61; --earth: #E8B94A; --metal: #B9C4CF; --water: #8DB0EE;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--seam) 1px, transparent 1px),
+    linear-gradient(90deg, var(--seam) 1px, transparent 1px);
+  background-size: 240px 240px;
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding-block: 32px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 28px;
+}
+
+/* 머리말 */
+.hd { display: grid; gap: 8px; }
+.hd h1 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(40px, 9vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+}
+.hd h1 .han {
+  font-family: var(--f-han); font-weight: 900;
+  font-size: .42em; color: var(--el);
+  border: 2px solid currentColor; border-radius: 6px;
+  padding: 2px 8px 4px; line-height: 1.2;
+  transition: color .3s;
+}
+.hd p { margin: 0; color: var(--muted); max-width: 56ch; text-wrap: pretty; }
+
+/* 입력 */
+.form {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex; flex-wrap: wrap; gap: 14px 12px; align-items: end;
+}
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label, .lbl {
+  font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .04em;
+}
+.field.y { flex: 1 1 110px; }
+.field.m, .field.d { flex: 1 1 76px; }
+.field.n { flex: 2 1 160px; }
+select, input[type="text"] {
+  font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; width: 100%; min-height: 44px;
+  font-variant-numeric: tabular-nums;
+}
+select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 3px solid var(--el); outline-offset: 2px;
+}
+.late {
+  flex: 1 1 100%;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 14px;
+}
+.late input { width: 18px; height: 18px; accent-color: var(--el); margin: 0; }
+.late small { color: var(--muted); font-size: 12.5px; }
+.go {
+  flex: 1 1 140px;
+  font: inherit; font-weight: 700; font-size: 16px;
+  min-height: 46px; border: 0; border-radius: 10px; cursor: pointer;
+  background: var(--ink); color: var(--bg);
+}
+.go:hover { filter: brightness(1.1); }
+
+/* 결과 */
+.result { display: grid; gap: 28px; }
+.rhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; color: var(--muted); font-size: 14px; }
+.chip {
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1.5px solid var(--muted); color: var(--muted);
+}
+.rgrid { display: grid; gap: 32px; }
+@media (min-width: 780px) {
+  .rgrid { grid-template-columns: 330px minmax(0, 1fr); gap: 48px; align-items: start; }
+  .stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+}
+
+.stage { display: grid; place-items: center; padding-inline: 30px; perspective: 1400px; }
+.deck {
+  position: relative;
+  width: min(270px, 100%);
+  aspect-ratio: 1 / 2.08;
+  border-radius: 46% / 15%;
+  background:
+    repeating-linear-gradient(177deg, var(--grain) 0 2px, transparent 2px 10px),
+    var(--deck);
+  color: var(--on-deck);
+  transform-style: preserve-3d;
+  transition: background-color .3s;
+}
+.deck::before {
+  content: ""; position: absolute; inset: 9px;
+  border: 1.5px solid var(--deck-line); border-radius: 46% / 15%;
+  pointer-events: none;
+}
+.deck.flip { animation: flip .8s cubic-bezier(.3, .7, .3, 1); }
+@keyframes flip {
+  0% { transform: translateY(0) rotateY(0); }
+  35% { transform: translateY(-26px) rotateY(160deg); }
+  100% { transform: translateY(0) rotateY(360deg); }
+}
+.truck {
+  position: absolute; left: -12%; right: -12%; height: 9.5%;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.truck.t1 { top: 6.5%; }
+.truck.t2 { bottom: 6.5%; }
+.truck::before {
+  content: ""; position: absolute; left: 8%; right: 8%; top: 50%; height: 12px; transform: translateY(-50%);
+  background: linear-gradient(var(--truck-hi), var(--truck) 55%, var(--truck-lo));
+  border-radius: 6px;
+}
+.truck::after {
+  content: ""; position: absolute; left: 50%; top: 4%; bottom: 4%; width: 26%; transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--truck-lo), var(--truck) 30%, var(--truck-hi) 50%, var(--truck) 70%, var(--truck-lo));
+  border-radius: 8px;
+}
+.wheel {
+  position: relative; z-index: 1;
+  width: 13%; height: 100%;
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 50%, var(--truck-hi) 0 16%, var(--truck-lo) 17% 22%, transparent 23%),
+    var(--wheel);
+  border: 2px solid var(--w-edge);
+  transition: background-color .3s;
+}
+.face {
+  position: absolute; inset: 19% 9%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 4px;
+}
+.face .who { font-size: 12px; letter-spacing: .08em; opacity: .82; margin: 0; max-width: 100%; overflow-wrap: anywhere; }
+.pillar {
+  font-family: var(--f-han); font-weight: 900;
+  font-size: clamp(56px, 19vw, 72px); line-height: 1.02;
+  display: grid; margin: 4px 0 2px;
+}
+.face .ko { font-size: 13px; font-weight: 500; margin: 0 0 8px; opacity: .92; }
+.face h2 {
+  margin: 0; font-family: var(--f-display); font-weight: 400;
+  font-size: 27px; line-height: 1.15; text-wrap: balance;
+}
+.face .sub { margin: 2px 0 0; font-size: 13px; opacity: .85; }
+.face .tags { margin: 8px 0 0; font-size: 12px; font-weight: 500; opacity: .9; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; }
+
+/* 풀이 */
+.detail { display: grid; gap: 26px; min-width: 0; }
+.lede { margin: 0; font-size: 18px; line-height: 1.65; max-width: 40ch; text-wrap: pretty; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+.facts dt { font-size: 13px; font-weight: 700; color: var(--muted); padding-top: 1px; }
+.facts dd { margin: 0; }
+.facts .trick { font-weight: 700; color: var(--el); }
+
+.block { display: grid; gap: 10px; padding-top: 20px; border-top: 1.5px solid var(--line); }
+.eyebrow { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.eyebrow .yh { font-family: var(--f-han); font-weight: 900; font-size: 15px; color: var(--year); letter-spacing: 0; }
+.block h3 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; line-height: 1.15; }
+.block h3 .rel {
+  font-family: var(--f-body); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  vertical-align: middle; margin-left: 10px; padding: 3px 9px; border-radius: 999px;
+  color: var(--el); border: 1.5px solid currentColor;
+}
+.block p { margin: 0; max-width: 54ch; text-wrap: pretty; }
+.block .how { font-size: 13.5px; color: var(--muted); }
+.block .care { font-size: 14px; }
+.block .care b { color: var(--el); }
+
+.lucky { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.lucky div {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; display: grid; gap: 2px; min-width: 0;
+}
+.lucky dt { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+.lucky dd { margin: 0; font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.sw { width: 14px; height: 22px; border-radius: 4px; background: var(--wheel); border: 1.5px solid var(--w-edge); flex: none; }
+
+.match { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.mhan {
+  width: 58px; height: 58px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--f-han); font-weight: 900; font-size: 30px; line-height: 1;
+  color: var(--on-deck); background: var(--pdeck, var(--deck));
+}
+.match strong { font-size: 17px; display: block; }
+.match p { color: var(--muted); font-size: 14px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  font: inherit; font-weight: 700; font-size: 15px;
+  min-height: 46px; padding: 0 20px; border-radius: 10px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+}
+.btn.pri { background: var(--el); color: var(--bg); border: 0; }
+.btn.sec { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.btn:hover { filter: brightness(1.08); }
+.fallback { width: 100%; min-height: 120px; font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+
+.ft { color: var(--muted); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 18px; }
+.ft p { margin: 0; }
+.ft a { color: var(--ink); font-weight: 700; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--ink); color: var(--bg);
+  padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: 14px;
+  transition: opacity .2s, transform .2s; max-width: calc(100% - 32px); text-align: center;
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* 오행별 색 */
+[data-el="wood"]  { --el: var(--wood);  --deck: var(--deck-wood);  --wheel: var(--w-wood); }
+[data-el="fire"]  { --el: var(--fire);  --deck: var(--deck-fire);  --wheel: var(--w-fire); }
+[data-el="earth"] { --el: var(--earth); --deck: var(--deck-earth); --wheel: var(--w-earth); }
+[data-el="metal"] { --el: var(--metal); --deck: var(--deck-metal); --wheel: var(--w-metal); }
+[data-el="water"] { --el: var(--water); --deck: var(--deck-water); --wheel: var(--w-water); }
+[data-p="wood"]  { --pdeck: var(--deck-wood); }
+[data-p="fire"]  { --pdeck: var(--deck-fire); }
+[data-p="earth"] { --pdeck: var(--deck-earth); }
+[data-p="metal"] { --pdeck: var(--deck-metal); }
+[data-p="water"] { --pdeck: var(--deck-water); }
+
+@media (prefers-reduced-motion: reduce) {
+  .deck.flip { animation: none; }
+  .toast, .deck, .wheel, .hd h1 .han { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app" data-el="earth">
+  <header class="hd">
+    <h1>롱보더 사주 <span class="han">日柱</span></h1>
+    <p>생일을 넣으면 보드 위의 내가 나와. 태어난 날의 일주(日柱)로 라이딩 타입, 2027년 운세, 찰떡 크루를 알려 줄게.</p>
+  </header>
+
+  <form class="form" id="form" autocomplete="off">
+    <div class="field y"><label for="fy">태어난 해</label><select id="fy"></select></div>
+    <div class="field m"><label for="fm">월</label><select id="fm"></select></div>
+    <div class="field d"><label for="fd">일</label><select id="fd"></select></div>
+    <div class="field n"><label for="fn">닉네임 (안 써도 돼)</label><input type="text" id="fn" maxlength="12" placeholder="예: 보드왕"></div>
+    <label class="late" for="fl"><input type="checkbox" id="fl"> 밤 11시 넘어서 태어났어 <small>자시(子時)라서 다음 날 일주로 봐</small></label>
+    <button class="go" type="submit">사주 보기</button>
+  </form>
+
+  <section class="result" id="result" aria-live="polite">
+    <p class="rhead"><span class="chip" id="exChip">예시</span><span id="born">2000년 1월 1일생</span></p>
+    <div class="rgrid">
+      <div class="stage">
+        <div class="deck" id="deck">
+          <span class="truck t1"><i class="wheel"></i><i class="wheel"></i></span>
+          <div class="face">
+            <p class="who" id="dWho">나의 일주</p>
+            <div class="pillar" aria-hidden="true"><span id="dStem">戊</span><span id="dBr">午</span></div>
+            <p class="ko" id="dKo">무오일주 · 노란 말</p>
+            <h2 id="dName">흔들림 없는 산</h2>
+            <p class="sub" id="dSub">든든한 큰 산</p>
+            <p class="tags" id="dTags"></p>
+          </div>
+          <span class="truck t2"><i class="wheel"></i><i class="wheel"></i></span>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="lede" id="tDesc"></p>
+        <dl class="facts">
+          <dt>시그니처 트릭</dt><dd class="trick" id="tTrick"></dd>
+          <dt>일간</dt><dd id="tStem"></dd>
+          <dt>약점</dt><dd id="tWeak"></dd>
+        </dl>
+
+        <div class="block">
+          <p class="eyebrow"><span class="yh">丁未</span> 2027년 · 붉은 양의 해</p>
+          <h3><span id="yTitle"></span><span class="rel" id="yRel"></span></h3>
+          <p class="how" id="yHow"></p>
+          <p id="yBody"></p>
+          <p class="care"><b>조심</b> <span id="yCare"></span></p>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">행운 아이템 · 오행 기준</p>
+          <dl class="lucky">
+            <div><dt>행운의 휠 색</dt><dd><span class="sw" aria-hidden="true"></span><span id="lWheel"></span></dd></div>
+            <div><dt>행운의 스팟</dt><dd id="lSpot"></dd></div>
+            <div><dt>출발 방향</dt><dd id="lDir"></dd></div>
+            <div><dt>행운 숫자</dt><dd id="lNum"></dd></div>
+          </dl>
+        </div>
+
+        <div class="block">
+          <p class="eyebrow">찰떡 크루 · 천간합(天干合)</p>
+          <div class="match" id="match">
+            <span class="mhan" id="mHan">癸</span>
+            <div><strong id="mName"></strong><p id="mLine"></p></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn pri" type="button" id="copy">결과 복사하기</button>
+          <button class="btn sec" type="button" id="share">사주 링크 공유</button>
+          <a class="btn sec" href="https://minilongboard.vercel.app" target="_blank" rel="noopener">보드를 타보자! 하러 가기</a>
+        </div>
+        <textarea class="fallback" id="fallback" readonly hidden aria-label="복사할 결과"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <footer class="ft">
+    <p>재미로 보는 사주야. 태어난 날 하나만 보기 때문에 같은 날 태어난 사람은 결과가 같아.</p>
+    <p>30초 롱보드 댄싱 게임 <a href="https://minilongboard.vercel.app" target="_blank" rel="noopener">보드를 타보자!</a> · made by @cloud._.sea</p>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const STEM = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+  const STEM_KO = ["갑","을","병","정","무","기","경","신","임","계"];
+  const BR = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+  const BR_KO = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
+  const ANIMAL = ["쥐","소","호랑이","토끼","용","뱀","말","양","원숭이","닭","개","돼지"];
+  const EL = ["wood","fire","earth","metal","water"];
+  const EL_HAN = ["木","火","土","金","水"];
+  const EL_KO = ["나무","불","흙","쇠","물"];
+  const EL_COLOR = ["푸른","붉은","노란","하얀","검은"];
+
+  const TYPES = [
+    { name: "직진 크로스스텝러", sub: "곧게 뻗은 큰 나무", tags: ["#꾸준함","#라인장인","#크루리더"], trick: "크로스스텝",
+      desc: "한 번 정한 라인은 끝까지 가. 데크 끝에서 끝까지 걸어가는 크로스스텝이 제일 잘 어울리는 타입이야. 말없이 앞장서도 다들 따라와.",
+      weak: "방향을 트는 피봇은 은근히 미루는 편." },
+    { name: "플로우 댄서", sub: "바람 타는 덩굴", tags: ["#유연함","#연결장인","#분위기메이커"], trick: "피터팬",
+      desc: "어떤 노면이든 금방 맞춰 타. 트릭과 트릭 사이 연결이 부드러워서 영상이 끊기지 않고 이어져.",
+      weak: "유행 따라가다 내 스타일을 잊을 때가 있어." },
+    { name: "무대 체질 쇼맨", sub: "한낮의 태양", tags: ["#존재감","#빅트릭","#관객환영"], trick: "빅 노컴플라이",
+      desc: "보는 사람이 많을수록 더 잘 타. 큰 트릭 하나로 공원 분위기를 바꿔 놓는 타입이야.",
+      weak: "카메라가 없으면 연습할 맛이 안 남." },
+    { name: "노을 감성 필르머", sub: "밤을 밝히는 촛불", tags: ["#감성","#디테일","#야간라이딩"], trick: "고스트라이드",
+      desc: "해 질 녘 강변에서 혼자 타는 시간을 좋아해. 남들이 놓치는 장면까지 영상에 담는 눈이 있어.",
+      weak: "각도 잡다가 해가 다 져 버림." },
+    { name: "흔들림 없는 산", sub: "든든한 큰 산", tags: ["#안정감","#믿음직","#크루의기둥"], trick: "피봇",
+      desc: "보드 위 중심이 산처럼 단단해. 옆에서 누가 넘어져도 너는 안 흔들리고, 다들 너를 보고 자세를 잡아.",
+      weak: "새 트릭 시작이 느려. 대신 시작하면 끝을 봐." },
+    { name: "기본기 장인", sub: "매일 가꾸는 밭", tags: ["#성실","#정확함","#연습벌레"], trick: "셔빗",
+      desc: "화려한 것보다 매일 조금씩. 스텝 하나하나가 정확해서 고수들이 먼저 알아봐.",
+      weak: "완벽해질 때까지 남 앞에서 안 보여 줌." },
+    { name: "끝장 도전러", sub: "단단한 바위", tags: ["#근성","#직진","#한번만더"], trick: "바디 바리얼",
+      desc: "안 되는 트릭은 될 때까지 해. 넘어져도 툭툭 털고 다시 올라타는 근성이 최고야.",
+      weak: "보호대 없이 일단 덤빔." },
+    { name: "스타일 장인", sub: "반짝이는 보석", tags: ["#스타일","#깔끔함","#코디장인"], trick: "타이거 클로",
+      desc: "같은 트릭도 네가 하면 더 예뻐 보여. 데크 그래픽부터 신발, 양말 색까지 맞추는 디테일파야.",
+      weak: "신발 상할까 봐 풋브레이크를 아낌." },
+    { name: "즉흥 잼 라이더", sub: "끝없는 바다", tags: ["#자유","#즉흥","#콤보머신"], trick: "크로스스텝 + 피봇 콤보",
+      desc: "계획 없이 흘러가는 대로 타는데 그게 제일 멋있어. 음악만 나오면 콤보가 술술 나와.",
+      weak: "어제 한 콤보를 오늘 기억 못 함." },
+    { name: "조용한 분석가", sub: "촉촉한 이슬비", tags: ["#관찰력","#섬세함","#반전고수"], trick: "노컴플라이",
+      desc: "고수 영상을 0.25배속으로 돌려 보는 타입. 조용히 연습하다가 어느 날 갑자기 완성해서 다들 놀라.",
+      weak: "생각이 많아서 첫 시도까지 오래 걸려." },
+  ];
+
+  // 2027 丁未년(불의 해)과 내 일간 오행의 관계
+  const YEAR = {
+    wood:  { rel: "식상", how: "木生火 · 내가 불을 키워 주는 해", title: "보여 주는 해",
+             body: "네 에너지가 트릭과 영상으로 터져 나오는 해야. 미뤄 둔 새 트릭을 완성하고 기록 영상을 남기기 좋아.",
+             care: "신나서 쉬는 걸 잊기 쉬워. 체력 관리 꼭." },
+    fire:  { rel: "비겁", how: "火와 火 · 같은 불이 하나 더 붙는 해", title: "크루의 해",
+             body: "같이 타는 사람이 늘어나는 해야. 단체 잼이나 같이 찍는 영상에서 좋은 일이 생겨.",
+             care: "은근한 경쟁심. 빌려준 장비는 돌려받기 어려울 수 있어." },
+    earth: { rel: "인성", how: "火生土 · 불이 흙을 데워 주는 해", title: "배우는 해",
+             body: "도와주는 사람이 나타나는 해야. 고수한테 한 수 배우거나 레슨을 받으면 기본기가 확 올라.",
+             care: "생각만 하고 안 타는 날이 늘 수 있어. 일단 나가자." },
+    metal: { rel: "관성", how: "火克金 · 불이 쇠를 단련하는 해", title: "도전의 해",
+             body: "압박이 오는 만큼 단단해지는 해야. 대회나 챌린지처럼 목표를 정하고 연습하면 크게 늘어.",
+             care: "무리하면 다쳐. 보호대는 꼭 챙겨." },
+    water: { rel: "재성", how: "水克火 · 물이 불을 다루는 해", title: "득템의 해",
+             body: "노력한 만큼 결과가 손에 잡히는 해야. 갖고 싶던 데크나 휠이 들어오고 연습도 보상받아.",
+             care: "지름신. 장바구니는 하루 묵혔다가 결제해." },
+  };
+
+  const LUCKY = {
+    wood:  { wheel: "초록", spot: "나무 그늘 공원길", dir: "동쪽", num: "3, 8" },
+    fire:  { wheel: "빨강", spot: "노을 지는 강변", dir: "남쪽", num: "2, 7" },
+    earth: { wheel: "노랑", spot: "넓은 광장", dir: "가운데에서", num: "5, 10" },
+    metal: { wheel: "하양", spot: "매끈한 다리 밑", dir: "서쪽", num: "4, 9" },
+    water: { wheel: "남색", spot: "강바람 부는 둔치", dir: "북쪽", num: "1, 6" },
+  };
+
+  // 천간합: 甲己 乙庚 丙辛 丁壬 戊癸
+  const PAIR = [
+    "한 명은 라인을 그리고 한 명은 디테일을 채워. 같이 타면 연습이 오래 가.",
+    "부드러움과 근성이 만나서 서로 못 하던 트릭을 끌어 줘.",
+    "무대는 쇼맨이, 코디는 스타일 장인이. 같이 찍으면 조회수 보장.",
+    "잼 라이더가 타고 필르머가 찍으면 인생 영상이 나와.",
+    "분석가가 길을 찾고 산이 버텨 줘. 연습 효율이 제일 좋은 조합.",
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const app = $("app"), fy = $("fy"), fm = $("fm"), fd = $("fd"), fn = $("fn"), fl = $("fl");
+  const KEY = "lbsaju:v1";
+  const SITE = "https://longboard-saju.vercel.app";
+  let copyText = "";
+
+  // 일주: 율리우스 적일(JDN) 기준. 甲子일 = (JDN + 49) mod 60 == 0
+  function dayPillar(y, m, d, late) {
+    let days = Math.floor(Date.UTC(y, m - 1, d) / 864e5) + (late ? 1 : 0);
+    const jdn = days + 2440588;
+    const i = ((jdn + 49) % 60 + 60) % 60;
+    return { stem: i % 10, br: i % 12 };
+  }
+
+  const daysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+  function opt(sel, from, to, step, fmt) {
+    const cur = sel.value;
+    sel.textContent = "";
+    for (let v = from; step > 0 ? v <= to : v >= to; v += step) {
+      const o = document.createElement("option");
+      o.value = v; o.textContent = fmt(v);
+      sel.appendChild(o);
+    }
+    if (cur && [...sel.options].some((o) => o.value === cur)) sel.value = cur;
+  }
+  opt(fy, 2026, 1940, -1, (v) => v + "년");
+  opt(fm, 1, 12, 1, (v) => v + "월");
+  function fillDays() {
+    const keep = fd.value;
+    opt(fd, 1, daysIn(+fy.value, +fm.value), 1, (v) => v + "일");
+    if (keep && +keep > fd.options.length) fd.value = String(fd.options.length);
+  }
+  fy.value = "2000"; fm.value = "1"; fillDays(); fd.value = "1";
+  fy.addEventListener("change", fillDays);
+  fm.addEventListener("change", fillDays);
+
+  function render(input, example) {
+    const { y, m, d, late, nick } = input;
+    const p = dayPillar(y, m, d, late);
+    const ei = Math.floor(p.stem / 2), el = EL[ei];
+    const t = TYPES[p.stem], yr = YEAR[el], lk = LUCKY[el];
+    const ps = (p.stem + 5) % 10, pel = EL[Math.floor(ps / 2)];
+    const yin = p.stem % 2 ? "음" : "양";
+    const animal = EL_COLOR[ei] + " " + ANIMAL[p.br];
+
+    app.dataset.el = el;
+    $("exChip").hidden = !example;
+    $("born").textContent = `${y}년 ${m}월 ${d}일생${late ? " · 밤 11시 이후" : ""}`;
+    $("dWho").textContent = nick ? `${nick}의 일주` : "나의 일주";
+    $("dStem").textContent = STEM[p.stem];
+    $("dBr").textContent = BR[p.br];
+    $("dKo").textContent = `${STEM_KO[p.stem]}${BR_KO[p.br]}일주 · ${animal}`;
+    $("dName").textContent = t.name;
+    $("dSub").textContent = t.sub;
+    $("dTags").textContent = "";
+    t.tags.forEach((g) => { const s = document.createElement("span"); s.textContent = g; $("dTags").appendChild(s); });
+
+    $("tDesc").textContent = t.desc;
+    $("tTrick").textContent = t.trick;
+    $("tStem").textContent = `${STEM[p.stem]}${EL_HAN[ei]} · ${yin}의 ${EL_KO[ei]}`;
+    $("tWeak").textContent = t.weak;
+
+    $("yTitle").textContent = yr.title;
+    $("yRel").textContent = yr.rel;
+    $("yHow").textContent = yr.how;
+    $("yBody").textContent = yr.body;
+    $("yCare").textContent = yr.care;
+
+    $("lWheel").textContent = lk.wheel + " 휠";
+    $("lSpot").textContent = lk.spot;
+    $("lDir").textContent = lk.dir + " 출발";
+    $("lNum").textContent = lk.num;
+
+    $("match").dataset.p = pel;
+    $("mHan").textContent = STEM[ps];
+    $("mName").textContent = `${STEM[ps]}${EL_HAN[Math.floor(ps / 2)]} ${TYPES[ps].name}`;
+    $("mLine").textContent = PAIR[Math.min(p.stem, ps)];
+
+    copyText = [
+      `${nick ? nick + "의" : "나의"} 롱보더 사주`,
+      `${STEM[p.stem]}${BR[p.br]}일주 · ${animal}`,
+      `${t.name} (${t.sub})`,
+      t.tags.join(" "),
+      `시그니처 트릭: ${t.trick}`,
+      `2027년: ${yr.title}`,
+      `행운의 휠: ${lk.wheel} · 스팟: ${lk.spot}`,
+      `찰떡 크루: ${TYPES[ps].name}(${STEM[ps]})`,
+      "",
+      "너도 해 봐: " + SITE,
+      "롱보드 댄싱 게임: https://minilongboard.vercel.app",
+    ].join("\n");
+    $("fallback").hidden = true;
+  }
+
+  function readForm() {
+    return { y: +fy.value, m: +fm.value, d: +fd.value, late: fl.checked, nick: fn.value.trim().slice(0, 12) };
+  }
+
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  if (saved && saved.y && saved.m && saved.d) {
+    fy.value = String(saved.y); fm.value = String(saved.m); fillDays(); fd.value = String(saved.d);
+    fl.checked = !!saved.late; fn.value = saved.nick || "";
+    render(readForm(), false);
+  } else {
+    render({ y: 2000, m: 1, d: 1, late: false, nick: "" }, true);
+  }
+
+  $("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = readForm();
+    render(input, false);
+    try { localStorage.setItem(KEY, JSON.stringify(input)); } catch (err) {}
+    const deck = $("deck");
+    deck.classList.remove("flip"); void deck.offsetWidth; deck.classList.add("flip");
+    if (window.innerWidth < 780) $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  });
+  $("deck").addEventListener("animationend", () => $("deck").classList.remove("flip"));
+
+  let tt;
+  function toast(msg) {
+    const el = $("toast"); el.textContent = msg; el.classList.add("on");
+    clearTimeout(tt); tt = setTimeout(() => el.classList.remove("on"), 2200);
+  }
+  function showFallback() {
+    const ta = $("fallback"); ta.value = copyText; ta.hidden = false; ta.focus(); ta.select();
+    toast("아래 글을 길게 눌러서 복사해 줘");
+  }
+  $("share").addEventListener("click", async () => {
+    if (navigator.share) {
+      try { await navigator.share({ url: SITE }); } catch (e) {}
+      return;
+    }
+    try { await navigator.clipboard.writeText(SITE); toast("링크를 복사했어"); }
+    catch (e) { const ta = $("fallback"); ta.value = SITE; ta.hidden = false; ta.focus(); ta.select(); toast("아래 링크를 길게 눌러서 복사해 줘"); }
+  });
+  $("copy").addEventListener("click", () => {
+    try {
+      navigator.clipboard.writeText(copyText).then(() => toast("복사했어. 카톡에 붙여 넣어 봐!"), showFallback);
+    } catch (e) { showFallback(); }
+  });
+})();
+</script>
+</body>
+</html>
