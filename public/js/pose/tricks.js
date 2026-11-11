@@ -6,27 +6,27 @@ export function createTricks(env) {
     } = env;
 
     function poseStep(ctx) {
-        const { A, t, e, B, side, faceFwd, c0, shake } = ctx;
+        const { A, t, B, side, faceFwd } = ctx;
         let {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
         } = ctx;
         const f = A.fromFeet || env.G.startFeet || stepPositions[A.from],
             to = stepPositions[A.to];
-        pa = lerp(f[0], to[0], e);
-        pb = lerp(f[1], to[1], e);
-        const lift = Math.sin(Math.PI * t) * 0.13;
-        // +X is forward; regular crosses left, goofy crosses right.
-        const crossZ = -0.08 * side * Math.sin(Math.PI * t);
+        const first = ease(clamp(t / 0.65, 0, 1));
+        const second = ease(clamp((t - 0.35) / 0.65, 0, 1));
+        const forward = A.to > A.from;
+        const moveA = forward ? second : first;
+        const moveB = forward ? first : second;
+        pa = lerp(f[0], to[0], moveA);
+        pb = lerp(f[1], to[1], moveB);
+        la = Math.sin(Math.PI * moveA) * 0.13;
+        lb = Math.sin(Math.PI * moveB) * 0.13;
+        // +X is forward; regular steps left, goofy steps right.
+        za = -0.08 * side * Math.sin(Math.PI * moveA);
+        zb = -0.08 * side * Math.sin(Math.PI * moveB);
         hop = Math.sin(Math.PI * t) * 0.035;
         hipDrop = bump(t, 0, 0.3) * 0.025 + bump(t, 0.6, 1) * 0.055;
-        if (f[0] !== to[0]) {
-            la = lift;
-            za = crossZ;
-        } else {
-            lb = lift;
-            zb = crossZ;
-        }
         arms = 0.7;
         lean = 0.06;
         yaw = faceFwd;
@@ -44,41 +44,43 @@ export function createTricks(env) {
         const gather = ease(clamp(t / 0.42, 0, 1));
         const turnT = clamp((t - 0.46) / 0.4, 0, 1);
         const turn = ease(turnT);
-        // Regular-start reference: A is right, B is left throughout all four steps.
-        // Stance mirroring happens after this local motion has been calculated.
-        const leftStartPosition = ctx.pb;
-        const rightStartPosition = ctx.pa;
+        // Track the same legs through the turn, even after they trade places.
+        const rightIsA = ctx.pa < ctx.pb;
+        const leftStartPosition = rightIsA ? ctx.pb : ctx.pa;
+        const rightStartPosition = rightIsA ? ctx.pa : ctx.pb;
+        // Land on this slot's standing positions after every turn.
+        const [rearTarget, frontTarget] = POS[1];
         const plant = rightStartPosition + 0.1;
+        const pivot = lerp(plant, rearTarget, turn);
         const gatherRight = LM * 0.065;
-        const gap = Math.max(0.24, Math.abs(leftStartPosition - rightStartPosition));
         const angle = Math.PI * turn;
-        const radius = lerp(plant - rightStartPosition, gap, turn);
+        const radius = lerp(plant - rightStartPosition, frontTarget - rearTarget, turn);
         // Step 1: bring the left heel to the right toes, making a T-shaped stance.
         const leftFoot = {
-            x: Xw(TAIL + lerp(leftStartPosition, plant, gather) * L),
+            x: Xw(TAIL + lerp(leftStartPosition, pivot, gather) * L),
             y: Y_ANK + shake + Math.sin(Math.PI * gather) * 0.045,
             z: gatherRight * gather * (1 - turn),
         };
-        // Step 2: swing the right foot counterclockwise around the planted left foot.
+        // Step 2: sweep around the left foot into the deck's rear-middle stance.
         const rightFoot = {
-            x: Xw(TAIL + (plant - radius * Math.cos(angle)) * L),
+            x: Xw(TAIL + (pivot - radius * Math.cos(angle)) * L),
             y: Y_ANK + shake + Math.sin(Math.PI * turnT) * 0.075,
             z: radius * Math.sin(angle) * LM,
         };
-        ctx.ga = rightFoot;
-        ctx.gb = leftFoot;
+        ctx.ga = rightIsA ? rightFoot : leftFoot;
+        ctx.gb = rightIsA ? leftFoot : rightFoot;
         const faceFront = ease(clamp((t - 0.86) / 0.08, 0, 1));
         const frontYaw = Math.PI / 2 * gather + Math.PI / 2 * faceFront;
         const rearYaw = Math.PI * turn;
-        ctx.footYawA = rearYaw;
-        ctx.footYawB = frontYaw;
+        ctx.footYawA = rightIsA ? rearYaw : frontYaw;
+        ctx.footYawB = rightIsA ? frontYaw : rearYaw;
         ctx.yaw = Math.PI / 2 * gather + Math.PI / 2 * turn;
         // Gather first; only then let the shoulders lead the rear-foot turn.
         const upperTurn = ease(clamp((t - 0.42) / 0.4, 0, 1));
         ctx.shoulderYaw = Math.PI / 2 * gather + Math.PI / 2 * upperTurn;
         ctx.hipZ = (leftFoot.z + rightFoot.z) / 2;
         ctx.hipDrop = 0.045 * Math.sin(Math.PI * t) ** 2;
-        ctx.arms = 0.55;
+        ctx.arms = 0.45 + 0.32 * Math.sin(Math.PI * t) ** 2;
         ctx.lean = 0;
         if (!hasExtraSteps || ctx.t <= 0.5) return;
         {
@@ -88,12 +90,11 @@ export function createTricks(env) {
             const turn = ease(turnT);
             const upperTurn = ease(clamp((secondT - 0.42) / 0.4, 0, 1));
             const faceFront = ease(clamp((secondT - 0.86) / 0.08, 0, 1));
-            // Preserve the same named legs: right A stays planted in step 3.
-            const rightStart = ctx.ga;
-            const leftStart = ctx.gb;
-            const target = POS[1];
-            const leftX = Xw(TAIL + target[1] * L);
-            const rightX = Xw(TAIL + target[0] * L);
+            // Keep the same support leg from step 2 planted in step 3.
+            const rightStart = rightFoot;
+            const leftStart = leftFoot;
+            const leftX = Xw(TAIL + frontTarget * L);
+            const rightX = Xw(TAIL + rearTarget * L);
             const boardLength = Math.abs(Xw(TAIL + L) - Xw(TAIL));
             const leftPlantX = rightStart.x - boardLength * 0.1;
             const left = {
@@ -107,18 +108,18 @@ export function createTricks(env) {
                 y: Y_ANK + ctx.shake + Math.sin(Math.PI * turnT) * 0.075,
                 z: -LM * 0.22 * Math.sin(Math.PI * turn),
             };
-            ctx.ga = right;
-            ctx.gb = left;
+            ctx.ga = rightIsA ? right : left;
+            ctx.gb = rightIsA ? left : right;
             // Hold the support-foot heading until the clockwise step has landed.
             const leftYaw = Math.PI + Math.PI / 2 * gather + Math.PI / 2 * faceFront;
             const rightYaw = Math.PI - Math.PI * turn;
-            ctx.footYawA = rightYaw;
-            ctx.footYawB = leftYaw;
+            ctx.footYawA = rightIsA ? rightYaw : leftYaw;
+            ctx.footYawB = rightIsA ? leftYaw : rightYaw;
             ctx.yaw = Math.PI + Math.PI / 2 * gather + Math.PI / 2 * turn;
             ctx.shoulderYaw = Math.PI + Math.PI / 2 * gather + Math.PI / 2 * upperTurn;
             ctx.hipZ = (left.z + right.z) / 2;
             ctx.hipDrop = 0.045 * Math.sin(Math.PI * secondT) ** 2;
-            ctx.arms = 0.55;
+            ctx.arms = 0.45 + 0.32 * Math.sin(Math.PI * secondT) ** 2;
             ctx.lean = 0;
         }
     }
@@ -876,9 +877,12 @@ export function createTricks(env) {
             B.py = 0.09 + 0.33 * bump(t, 0.12, 0.85);
             B.roll = 2 * Math.PI * clamp((t - 0.2) / 0.55, 0, 1);
         }
-        const fp = A.phase === "off" ? POS[A.fromPos || 0] : POS[0];
-        pa = fp[0];
-        pb = fp[1];
+        const remount = A.phase === "jump" || A.phase === "flip"
+            ? ease(clamp((t - 0.65) / 0.35, 0, 1))
+            : 0;
+        const from = A.phase === "off" ? POS[A.fromPos || 0] : POS[0];
+        pa = lerp(from[0], POS[1][0], remount);
+        pb = lerp(from[1], POS[1][1], remount);
         Object.assign(ctx, {
             pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,

@@ -1,7 +1,7 @@
 import { sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
 import { createSolver } from "./solve.js?v=20261111-peter-pan-duration-1200";
-import { createTricks } from "./tricks.js?v=20261111-peter-pan-duration-1200";
+import { createTricks } from "./tricks.js?v=20261111-ghost-rear-landing";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -21,7 +21,7 @@ export function createPose3(env, getStance = stanceParameters) {
     const ACT_POSE = createTricks(env);
     const {
         POS, Xw, TAIL, L, Y_ANK, K,
-        clamp, ease, newPoses, reduce, landingDown, touchdownOf, TRICKS,
+        clamp, ease, lerp, newPoses, reduce, landingDown, touchdownOf, TRICKS,
     } = env;
 
     function applyActPose(ctx) {
@@ -144,7 +144,7 @@ export function createPose3(env, getStance = stanceParameters) {
         const footStep = turnStep || (A && A.type === "pan");
         if (A && A.type === "pan" && ctx.panSocketSign != null) {
             sockSign = ctx.panSocketSign * ctx.side;
-        } else if (crossFeet || (!A && env.G.crossStepStance)) {
+        } else if (crossFeet) {
             sockSign = -ctx.side;
         } else if (!keepNoComplyLegs && Math.abs(projection) > 1e-6) {
             sockSign = Math.sign(projection);
@@ -251,7 +251,36 @@ export function createPose3(env, getStance = stanceParameters) {
                 roll: 0,
             },
         };
-        if (A) applyActPose(ctx);
+        if (A) {
+            applyActPose(ctx);
+            if (TRICKS[A.type] && TRICKS[A.type].pts && t > 0.9) {
+                const settle = ease(clamp((t - 0.9) / 0.1, 0, 1));
+                const currentA = ctx.ga || {
+                    x: Xw(TAIL + ctx.pa * L),
+                    y: Y_ANK + ctx.hop + ctx.la + shake,
+                    z: ctx.za,
+                };
+                const currentB = ctx.gb || {
+                    x: Xw(TAIL + ctx.pb * L),
+                    y: Y_ANK + ctx.hop + ctx.lb + shake,
+                    z: ctx.zb,
+                };
+                const [rear, front] = POS[env.G.pos];
+                const aTarget = currentA.x < currentB.x ? rear : front;
+                const bTarget = currentA.x < currentB.x ? front : rear;
+                ctx.ga = {
+                    x: lerp(currentA.x, ctx.B.px + (aTarget - 0.5) * env.LM, settle),
+                    y: lerp(currentA.y, Y_ANK + shake, settle),
+                    z: lerp(currentA.z, ctx.B.pz, settle),
+                };
+                ctx.gb = {
+                    x: lerp(currentB.x, ctx.B.px + (bTarget - 0.5) * env.LM, settle),
+                    y: lerp(currentB.y, Y_ANK + shake, settle),
+                    z: lerp(currentB.z, ctx.B.pz, settle),
+                };
+                ctx.hipZ = (ctx.ga.z + ctx.gb.z) / 2;
+            }
+        }
         // 게임에서는 착지와 동시에 트릭이 끝나므로, 남은 다운(무릎 굽혔다 펴기)을 여기서 마저 한다.
         const G = env.G;
         if (newPoses && G.landEl < 320 && !(A && ((TRICKS[A.type] && TRICKS[A.type].air) || A.type === "ghost")))
