@@ -606,8 +606,8 @@ export function createTricks(env) {
                 z: noseFoot.z + 0.04 * plant * forwardZ,
             };
             // Reverse deck coordinates to match the rider's completed 180-degree turn.
-            const landingA = (1 - PIVOT_FRONT - 0.5) * LM;
-            const landingB = (1 - PIVOT_BACK - 0.5) * LM;
+            const landingA = (POS[env.G.pos][0] - 0.5) * LM;
+            const landingB = (POS[env.G.pos][1] - 0.5) * LM;
             const landingAngle = 2 * Math.PI;
             const landingFoot = (offset) => ({
                 x: B.px + offset * Math.cos(landingAngle),

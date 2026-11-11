@@ -4,7 +4,7 @@ import {
     footPair,
     standingPositions,
 } from "./pose/foot-positions.js?v=20261111-pose-stance";
-import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
+import { createPose3 } from "./pose/pose3.js?v=20261111-nose-spin-tricks";
 
 (function () {
     "use strict";
@@ -100,8 +100,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         {
             id: "shuv",
             label: "셔빗",
-            zone: "테일",
-            zoneEn: "Tail",
+            zone: "노즈",
+            zoneEn: "Nose",
             pts: "200",
             how: "뛰는 사이 보드가 발밑에서 180° 돌아요",
             howEn: "Hop while the board spins 180° under your feet.",
@@ -109,8 +109,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         {
             id: "bigspin",
             label: "빅스핀",
-            zone: "테일",
-            zoneEn: "Tail",
+            zone: "노즈",
+            zoneEn: "Nose",
             pts: "380",
             how: "보드는 360° 셔빗, 몸은 같은 방향으로 180° 돌아요",
             howEn: "The board does a 360 shove-it while your body turns 180° the same way.",
@@ -118,8 +118,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         {
             id: "biggerspin",
             label: "비거스핀",
-            zone: "테일",
-            zoneEn: "Tail",
+            zone: "노즈",
+            zoneEn: "Nose",
             pts: "520",
             how: "보드는 540° 셔빗, 몸은 180°. 빅스핀보다 반 바퀴 더 돌아요",
             howEn: "A 540 shove-it under a 180° body turn: half a spin more than a big spin.",
@@ -136,8 +136,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         {
             id: "ncbig",
             label: "노컴 빅스핀",
-            zone: "가운데 뒤",
-            zoneEn: "Rear middle",
+            zone: "노즈",
+            zoneEn: "Nose",
             pts: "450",
             how: "앞발을 딛고 테일을 팝, 보드는 360° 돌고 몸은 180° 돌며 올라타요",
             howEn: "Plant your front foot and pop the tail; the board spins 360° while you turn 180° back onto it.",
@@ -220,8 +220,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             zone: "보너스",
             zoneEn: "Bonus",
             pts: "100",
-            how: "스핀 트릭, 노컴플라이, 바디 배리얼로 떠 있는 사이 돌이 지나가면",
-            howEn: "Let a pebble pass while you're airborne in a spin trick, a no comply or a body varial.",
+            how: "셔빗, 빅스핀, 노컴플라이로 떠 있는 사이 돌이 지나가면",
+            howEn: "Let a pebble pass while you're airborne in a shove-it, bigspin or no comply.",
         },
     ];
     const TRICKS = {
@@ -304,11 +304,34 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 200, cap: "200" },
     };
     const SLOTS = [
-        ["shuv", "bigspin", "biggerspin"],
-        ["nocomply", "ncbig", "ghost", "step180", "step360"],
+        [null, null, null],
+        ["nocomply", null, "ghost", "step180", "step360"],
         ["pan", "pirouette", "varial"],
-        ["pivot", null, null],
+        ["pivot", "shuv", "ncbig", "bigspin", "biggerspin"],
     ];
+    // 한 칸에 트릭이 3개보다 많으면 그중 3개만 보여 주고, 트릭이 끝나면 다시 뽑는다.
+    let offer = [];
+    let offerPos = -1;
+    function rollOffer() {
+        const ids = SLOTS[G.pos].filter(Boolean);
+        offerPos = G.pos;
+        if (ids.length <= 3) {
+            offer = ids.slice();
+            return;
+        }
+        const bag = ids.slice();
+        for (let i = bag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const swap = bag[i];
+            bag[i] = bag[j];
+            bag[j] = swap;
+        }
+        const picked = new Set(bag.slice(0, 3));
+        offer = ids.filter((id) => picked.has(id));
+    }
+    function syncOffer() {
+        if (offerPos !== G.pos) rollOffer();
+    }
 
     /* ---------- 기록 ---------- */
     const best = { score: 0, combo: 0, landed: {} };
@@ -736,7 +759,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
                 startAct("push", { dur: pushDuration, boosted: false });
             }
         } else if (slot >= 0) {
-            const id = SLOTS[G.pos][slot];
+            syncOffer();
+            const id = offer[slot];
             if (!id) return;
             const tr = TRICKS[id];
             if (G.v < tr.minV) {
@@ -847,6 +871,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         )
             G.landEl = 0;
         afterAct();
+        if (TRICKS[A.type] && TRICKS[A.type].pts) rollOffer();
     }
     function endGhost(A) {
         G.act = null;
@@ -859,6 +884,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         else addTrick("고스트라이드", 150 + bonus, { key: "ghost" });
         sfx.land();
         afterAct();
+        rollOffer();
     }
     function leavePebble(p) {
         const past = p.x + L / 2 + 16;
@@ -894,14 +920,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
                 return;
             }
         }
-        if (
-            G.pos === 0 &&
-            (!A ||
-                A.type === "push" ||
-                A.type === "shuv" ||
-                A.type === "bigspin" ||
-                A.type === "biggerspin")
-        ) {
+        if (G.pos === 0 && !A) {
             G.shake = 0.25;
             if (!rideTestPage) G.v *= 0.92;
             sfx.clunk();
@@ -2821,8 +2840,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
                 },
             ];
         }
-        return SLOTS[G.pos].map((id) => {
-            if (!id) return { l: "—", e: "", c: "", dim: true };
+        syncOffer();
+        return offer.map((id) => {
             const tr = TRICKS[id];
             return {
                 l: tr.label,
@@ -2928,6 +2947,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
         }
         if (!ok3d) return;
         G = newState("play");
+        rollOffer();
         hc = {};
         pops.textContent = "";
         meterEl.hidden = true;
@@ -4307,7 +4327,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
             group: "트릭",
             label: "노컴 빅스핀",
             en: "No comply big spin",
-            pos: 1,
+            pos: 3,
             trick: "ncbig",
             dur: 1500,
         },
