@@ -397,7 +397,7 @@ export function createTricks(env) {
                 const dx = rightLandingX - rightStartX;
                 const dz = -lateral;
                 const chord = Math.hypot(dx, dz);
-                const radius = Math.max(LM * 0.24, chord / 2 + 0.001);
+                const radius = Math.max(LM * 0.19, chord / 2 + 0.001);
                 const offset = Math.sqrt(radius * radius - chord * chord / 4);
                 const centerX = (rightStartX + rightLandingX) / 2 - dz / chord * offset;
                 const centerZ = dz / 2 + dx / chord * offset;
@@ -416,7 +416,7 @@ export function createTricks(env) {
                 rightFoot.y += arc * 0.24;
                 const extend = ease(clamp(u / 0.25, 0, 1)) *
                     (1 - ease(clamp((u - 0.8) / 0.2, 0, 1)));
-                rightKneeBend = 1 - 0.75 * extend;
+                rightKneeBend = 1 - 0.55 * extend;
                 ctx.supportHipX = lerp((rightFoot.x + leftFoot.x) / 2, leftFoot.x, arc * 0.8);
                 // Cross only after the extended leg has cleared the support leg.
                 const cross = ease(clamp((u - 0.72) / 0.28, 0, 1));
@@ -471,19 +471,157 @@ export function createTricks(env) {
         // Let the pelvis unwind with the final turn instead of keeping the
         // thigh sockets facing forward beneath the sideways torso and shoes.
         const yaw = forwardYaw + bodyTurn - (phase === 3 ? Math.PI / 2 * u : 0);
-        const hipDrop = 0.035 * Math.sin(Math.PI * t) ** 2;
+        const gatherCrouch = phase === 0 ? 0.06 * Math.sin(Math.PI * u) : 0;
+        const hipDrop = 0.035 * Math.sin(Math.PI * t) ** 2 + gatherCrouch;
         const arms = 0.7;
         const lean = 0;
         ctx.footYawA = rightIsA ? rightYaw : leftYaw;
         ctx.footYawB = rightIsA ? leftYaw : rightYaw;
         ctx.kneeBendA = rightIsA ? rightKneeBend : 1;
         ctx.kneeBendB = rightIsA ? 1 : rightKneeBend;
+        // Step 2 plants the left leg as the axis. Tip that knee to the right.
+        ctx.kneeRightA = phase === 1 && !rightIsA;
+        ctx.kneeRightB = phase === 1 && rightIsA;
         const torsoRight = phase === 2 ? Math.PI / 4
             : phase === 3 ? Math.PI / 4 * (1 + u) : 0;
         ctx.shoulderYaw = forwardYaw + bodyTurn - torsoRight;
         Object.assign(ctx, {
             pa, pb, la: 0, lb: 0, za: 0, zb: 0, hop: 0, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
+        });
+    }
+
+    function posePanPrefix(ctx, progress, phaseCount) {
+        // Reuse Peter Pan's motion for the requested leading phases.
+        const partial = { ...ctx, t: progress * (phaseCount / 4) };
+        posePan(partial);
+        // Mango keeps its torso anchor fixed while the legs move.
+        partial.supportHipX = Xw(TAIL + ((ctx.pa + ctx.pb) / 2) * L);
+        partial.supportHipY = Y_ANK + 0.86;
+        partial.hipZ = 0;
+        partial.hipDrop = 0;
+        partial.hop = 0;
+        delete partial.t;
+        Object.assign(ctx, partial);
+    }
+
+    function poseMango(ctx) {
+        const { t, pa, pb, shake } = ctx;
+        if (t < 2 / 7) {
+            // Mango steps 1 and 2 match Peter Pan's first two phases.
+            posePanPrefix(ctx, t / (2 / 7), 2);
+            return;
+        }
+
+        // Steps 3 through 6 continue from Peter Pan's second-phase endpoint.
+        const rightIsA = pa < pb;
+        const rightStart = rightIsA ? pa : pb;
+        const fixedHipX = Xw(TAIL + ((pa + pb) / 2) * L);
+        const lateral = 0.065 * LM;
+        const leftX = Xw(TAIL + (rightStart + 0.1) * L);
+        const rightX = Xw(TAIL + rightStart * L) + lateral;
+        const leftFoot = { x: leftX, y: Y_ANK + shake, z: lateral };
+        const rightFoot = { x: leftX, y: Y_ANK + shake + 0.22, z: lateral + 0.29 };
+        let rightKneeBend = 0.72;
+        let leftKneeBend = 1;
+        let torsoYaw = Math.PI / 2;
+        let torsoLean = 0;
+        let bodyYaw = Math.PI / 2;
+
+        if (t < 3 / 7) {
+            // Step 3: anchor the left leg, bend the right, and swing it
+            // clockwise to the left leg's right side, off the deck.
+            const u = ease(clamp((t - 2 / 7) * 7, 0, 1));
+            const dx = rightX - leftX;
+            const dz = -2 * lateral;
+            const radiusStart = Math.hypot(dx, dz);
+            const radius = lerp(radiusStart, 0.29, u);
+            const startAngle = Math.atan2(dz, dx);
+            let turn = Math.PI / 2 - startAngle;
+            if (turn >= 0) turn -= 2 * Math.PI;
+            const angle = startAngle + turn * u;
+            rightFoot.x = leftX + Math.cos(angle) * radius;
+            rightFoot.z = leftFoot.z + Math.sin(angle) * radius;
+            rightFoot.y = Y_ANK + shake + 0.22 * Math.sin((Math.PI * u) / 2);
+            rightKneeBend = lerp(1, 0.72, u);
+        } else if (t < 5 / 7) {
+            // Step 4: bend the planted left leg further, touch down, then
+            // drag the right foot along the ground behind the tail.
+            const u = ease(clamp((t - 3 / 7) * 3.5, 0, 1));
+            const touchDown = ease(clamp(u / 0.2, 0, 1));
+            const drag = ease(clamp((u - 0.2) / 0.8, 0, 1));
+            const rightTargetX = Xw(TAIL - 22);
+            const startZ = lateral + 0.29;
+            const controlX = lerp(leftX, rightTargetX, 0.55);
+            const controlZ = 0.62;
+            const remain = 1 - drag;
+            rightFoot.x = remain * remain * leftX + 2 * remain * drag * controlX + drag * drag * rightTargetX;
+            rightFoot.z = remain * remain * startZ + 2 * remain * drag * controlZ + drag * drag * 0.26;
+            rightFoot.y = lerp(Y_ANK + shake + 0.22, G_ANK + shake, touchDown);
+            leftKneeBend = lerp(1, 0.45, u);
+            rightKneeBend = lerp(0.72, 0.9, u);
+            torsoYaw = lerp(Math.PI / 2, Math.PI / 4, u);
+            torsoLean = 0.14 * u;
+        } else if (t < 6 / 7) {
+            // Step 5: keep the right foot grounded and arc around the tail
+            // toward the outside of the left rear wheel.
+            const u = ease(clamp((t - 5 / 7) * 7, 0, 1));
+            const startX = Xw(TAIL - 22);
+            const targetX = Xw(TAIL + L / 2 - TRUCK);
+            const controlX = Xw(TAIL - 90);
+            const remain = 1 - u;
+            rightFoot.x = remain * remain * startX + 2 * remain * u * controlX + u * u * targetX;
+            rightFoot.z = remain * remain * 0.26 + 2 * remain * u * 0 + u * u * -0.26;
+            rightFoot.y = G_ANK + shake;
+            leftKneeBend = 0.45;
+            rightKneeBend = 0.9;
+            torsoYaw = lerp(Math.PI / 4, Math.PI / 6, u);
+            torsoLean = 0.14;
+        } else {
+            // Step 6: crouch, make a small hop, and pull the right leg inward.
+            const u = ease(clamp((t - 6 / 7) * 7, 0, 1));
+            const jumpProgress = clamp((u - 0.28) / 0.48, 0, 1);
+            const jump = 0.12 * Math.sin(Math.PI * jumpProgress);
+            const pull = ease(jumpProgress);
+            const rearWheelX = Xw(TAIL + L / 2 - TRUCK);
+            rightFoot.x = lerp(rearWheelX, rearWheelX + 0.1, pull);
+            rightFoot.z = lerp(-0.26, -0.12, pull);
+            rightFoot.y = G_ANK + shake + jump;
+            leftFoot.y = Y_ANK + shake + jump;
+            leftKneeBend = lerp(0.45, 0.3, ease(clamp(u / 0.28, 0, 1)));
+            rightKneeBend = 0.9;
+            torsoYaw = lerp(Math.PI / 6, 0, u);
+            bodyYaw = lerp(Math.PI / 2, 0, u);
+            torsoLean = 0.14 * (1 - pull);
+        }
+
+        const rightYaw = Math.PI / 2;
+        const leftYaw = Math.PI / 2;
+        const ga = rightIsA ? rightFoot : leftFoot;
+        const gb = rightIsA ? leftFoot : rightFoot;
+        ctx.footYawA = rightIsA ? rightYaw : leftYaw;
+        ctx.footYawB = rightIsA ? leftYaw : rightYaw;
+        ctx.kneeBendA = rightIsA ? rightKneeBend : leftKneeBend;
+        ctx.kneeBendB = rightIsA ? leftKneeBend : rightKneeBend;
+        ctx.kneeRightA = !rightIsA;
+        ctx.kneeRightB = rightIsA;
+        ctx.shoulderYaw = torsoYaw;
+        ctx.panSocketSign = rightIsA ? -1 : 1;
+        Object.assign(ctx, {
+            ga,
+            gb,
+            supportHipX: fixedHipX,
+            supportHipY: Y_ANK + 0.86,
+            hipZ: 0,
+            hipDrop: 0,
+            arms: 0.82,
+            lean: torsoLean,
+            yaw: bodyYaw,
+            hop: 0,
+            la: 0,
+            lb: 0,
+            za: 0,
+            zb: 0,
         });
     }
 
@@ -913,6 +1051,7 @@ export function createTricks(env) {
         heelflip: poseFlip,
         nocomply: poseNocomply,
         pan: posePan,
+        mango: poseMango,
         bigspin: poseBigspin,
         biggerspin: poseBigspin,
         ncbig: poseNcBig,

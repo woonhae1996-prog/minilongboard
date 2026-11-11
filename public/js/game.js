@@ -5,7 +5,7 @@ import {
     standingPositions,
     crossStepPositions,
 } from "./pose/foot-positions.js?v=20261111-cross-step-planted";
-import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
+import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
 
 (function () {
     "use strict";
@@ -17,6 +17,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
     const NEW_POSES = true;
     const newPoses = posePage || NEW_POSES;
     const cv = $("#cv");
+
     const reduce = !!(
         window.matchMedia &&
         matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -76,6 +77,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
         고스트라이드: "Ghost ride",
         "고스트라이드 킥플립": "Ghost ride kickflip",
         피터팬: "Peter Pan",
+        망고: "Mango",
         피루엣: "Pirouette",
         "바디 배리얼": "Body varial",
         행파이브: "Hang five",
@@ -211,6 +213,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
             howEn: "Gather the left foot at the right toes, sweep the right foot to the opposite side, then place the left foot at upper middle.",
         },
         {
+            id: "mango",
+            label: "망고",
+            zone: "가운데 앞",
+            zoneEn: "Front middle",
+            pts: "250",
+            how: "1·2번은 피터팬과 같아요. 3번은 오른다리를 왼다리 오른쪽 허공에 띄워요. 4번은 왼다리를 더 접고 상체를 굽혀 오른발을 지면에 댄 채 바깥쪽 곡선으로 테일 뒤까지 끌어요. 상체는 오른쪽 45°까지 돌아요. 5번은 지면을 따라 왼쪽 바퀴 바깥까지 옮기고 상체를 오른쪽 30°로 돌려요. 6번은 몸을 정면으로 돌리며 왼다리를 더 접었다가 살짝 점프하고, 오른다리를 몸 쪽으로 당겨와요.",
+            howEn: "Steps 1 and 2 match Peter Pan. Step 3 lifts the right foot to the left leg's right. Step 4 bends the left leg further, leans the torso forward, and drags the grounded right foot along an outward curve behind the tail, turning the torso 45° right. Step 5 moves it outside the left wheel and turns the torso back to 30° right. Step 6 faces forward, bends the left leg further, makes a small hop, and pulls the right leg inward.",
+        },
+        {
             id: "pirouette",
             label: "피루엣",
             zone: "가운데 앞",
@@ -330,8 +341,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
             body180: true,
         },
         ghost: { label: "고스트라이드", minV: 0.3, cap: GHOST_BASE_PTS + "+" },
-        // 기존 속도: dur 1000ms
-        pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
+        // 기존 속도: dur 1200ms
+        pan: { label: "피터팬", minV: 0.2, dur: 1400, pts: 250, cap: "250" },
+        mango: { label: "망고", minV: 0.2, dur: 2450, pts: 250, cap: "250" },
         pirouette: {
             label: "피루엣",
             minV: 0.25,
@@ -352,7 +364,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
     const SLOTS = [
         ["kickflip", "heelflip", "nocomply"],
         [null, null, "ghost", "step180", "step360"],
-        ["pan", "pirouette", "varial"],
+        ["pan", "pirouette", "varial", "mango"],
         ["pivot", "shuv", "ncbig", "bigspin", "biggerspin"],
     ];
     // 한 칸에 트릭이 3개보다 많으면 그중 3개만 보여 주고, 트릭이 끝나면 다시 뽑는다.
@@ -894,9 +906,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
                     (foot) => 0.5 + (foot.x - landingPose.B.px) / LM,
                 );
                 const [rear, front] = POS[G.pos];
-                G.startFeet = G.startFeet[0] < G.startFeet[1]
-                    ? [rear, front]
-                    : [front, rear];
+                G.startFeet =
+                    G.startFeet[0] < G.startFeet[1]
+                        ? [rear, front]
+                        : [front, rear];
                 if (A.type === "pan") {
                     const baseYaw = G.facing ? Math.PI : 0;
                     G.panFootYawA = landingPose.footYawA - baseYaw;
@@ -928,7 +941,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
         G.landEl = A.el - A.dur;
         const bonus = Math.round(A.run * 90);
         if (A.phase === "flip")
-            addTrick("고스트라이드 킥플립", GHOSTFLIP_BASE_PTS + bonus, { key: "ghostflip" });
+            addTrick("고스트라이드 킥플립", GHOSTFLIP_BASE_PTS + bonus, {
+                key: "ghostflip",
+            });
         else addTrick("고스트라이드", GHOST_BASE_PTS + bonus, { key: "ghost" });
         sfx.land();
         afterAct();
@@ -2872,11 +2887,19 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
         if (play && A && A.type === "ghost" && A.phase === "run") {
             const b = Math.round(A.run * 90);
             return [
-                { l: "올라타기", e: "Hop on", c: "+" + (GHOST_BASE_PTS + b), dim: false },
+                {
+                    l: "올라타기",
+                    e: "Hop on",
+                    c: "+" + (GHOST_BASE_PTS + b),
+                    dim: false,
+                },
                 {
                     l: "킥플립 캐치",
                     e: "Kickflip catch",
-                    c: A.run < 0.8 ? "더 달려 keep running" : "+" + (GHOSTFLIP_BASE_PTS + b),
+                    c:
+                        A.run < 0.8
+                            ? "더 달려 keep running"
+                            : "+" + (GHOSTFLIP_BASE_PTS + b),
                     dim: A.run < 0.8,
                 },
                 {
@@ -4401,6 +4424,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-cross-step-planted";
             en: "Peter Pan",
             pos: 2,
             trick: "pan",
+        },
+        {
+            id: "mango",
+            group: "트릭",
+            label: "망고",
+            en: "Mango",
+            pos: 2,
+            trick: "mango",
         },
         {
             id: "pirouette",

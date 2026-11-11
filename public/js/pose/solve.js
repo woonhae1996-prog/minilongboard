@@ -49,28 +49,38 @@ export function createSolver(env) {
             sB = -sA;
         const sockA = hip.clone().addScaledVector(axis, 0.09 * sA),
             sockB = hip.clone().addScaledVector(axis, 0.09 * sB);
-        const kneePole = (foot, socketSign, footYaw, kneeLift = 0) => {
+        const kneePole = (foot, socketSign, footYaw, kneeLift, bendRight) => {
+            let pole;
             if (footYaw != null)
-                return V(Math.sin(footYaw), 0, Math.cos(footYaw));
-            if (!o.kneesOut)
-                return f.clone().addScaledVector(axis, 0.3 * socketSign)
+                pole = V(Math.sin(footYaw), 0, Math.cos(footYaw));
+            else if (!o.kneesOut)
+                pole = f.clone().addScaledVector(axis, 0.3 * socketSign)
                     .addScaledVector(u, kneeLift);
-            const outward = V(foot.x - hip.x, 0, foot.z - hip.z);
-            if (outward.lengthSq() < 1e-6)
-                outward.copy(axis).multiplyScalar(socketSign);
-            return f.clone().addScaledVector(outward.normalize(), o.kneeOutward ?? 0.8);
+            else {
+                const outward = V(foot.x - hip.x, 0, foot.z - hip.z);
+                if (outward.lengthSq() < 1e-6)
+                    outward.copy(axis).multiplyScalar(socketSign);
+                pole = f.clone().addScaledVector(outward.normalize(), o.kneeOutward ?? 0.8);
+            }
+            if (bendRight) {
+                // Rider's right: +Z in regular, mirrored for goofy.
+                pole.add(V(0, 0, 0.4 * (o.stanceSide || 1)));
+                if (pole.lengthSq() < 1e-6) pole.set(0, 0, o.stanceSide || 1);
+                pole.normalize();
+            }
+            return pole;
         };
         const legA = ik(
             sockA,
             V(o.fa.x, o.fa.y, o.fa.z),
-            kneePole(o.fa, sA, o.footYawA, o.kneeLiftA),
+            kneePole(o.fa, sA, o.footYawA, o.kneeLiftA, o.kneeRightA),
             o.pinFootA,
             o.kneeBendA,
         );
         const legB = ik(
             sockB,
             V(o.fb.x, o.fb.y, o.fb.z),
-            kneePole(o.fb, sB, o.footYawB, o.kneeLiftB),
+            kneePole(o.fb, sB, o.footYawB, o.kneeLiftB, o.kneeRightB),
             o.pinFootB,
             o.kneeBendB,
         );
