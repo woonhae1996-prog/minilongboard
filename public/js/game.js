@@ -1,6 +1,10 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
-import { footPositions, footPair, standingPositions, crossStepPositions } from "./pose/foot-positions.js?v=20261111-peter-pan-duration-1200";
-import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200";
+import {
+    footPositions,
+    footPair,
+    standingPositions,
+} from "./pose/foot-positions.js?v=20261111-pose-stance";
+import { createPose3 } from "./pose/pose3.js?v=20261111-landing-lerp-fix";
 
 (function () {
     "use strict";
@@ -139,12 +143,20 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             howEn: "Plant your front foot and pop the tail; the board spins 360° while you turn 180° back onto it.",
         },
         {
-            id: "step360", label: "360 스텝", zone: "가운데 뒤", zoneEn: "Rear middle", pts: "360",
+            id: "step360",
+            label: "360 스텝",
+            zone: "가운데 뒤",
+            zoneEn: "Rear middle",
+            pts: "360",
             how: "레귤러 기준 180 스텝 뒤 오른발을 고정하고 왼발을 그 앞꿈치의 보드 왼편에 모아요. 오른발을 시계 방향으로 돌려 가운데 뒤에 착지해요",
             howEn: "Continue the 180 step by gathering the left foot to the right toes, then sweeping the right foot clockwise back to rear middle.",
         },
         {
-            id: "step180", label: "180 스텝", zone: "가운데 뒤", zoneEn: "Rear middle", pts: "180",
+            id: "step180",
+            label: "180 스텝",
+            zone: "가운데 뒤",
+            zoneEn: "Rear middle",
+            pts: "180",
             how: "레귤러 기준 왼발을 오른발 앞꿈치의 보드 오른편에 수직으로 모은 뒤, 오른발을 반시계로 돌리며 몸도 180° 돌아요",
             howEn: "Step with each foot in turn to rotate your body 180° while the board stays straight.",
         },
@@ -256,8 +268,21 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             cap: "450",
             body180: true,
         },
-        step360: { label: "360 스텝", minV: 0.2, dur: 1360, pts: 360, cap: "360" },
-        step180: { label: "180 스텝", minV: 0.2, dur: 680, pts: 180, cap: "180", body180: true },
+        step360: {
+            label: "360 스텝",
+            minV: 0.2,
+            dur: 1360,
+            pts: 360,
+            cap: "360",
+        },
+        step180: {
+            label: "180 스텝",
+            minV: 0.2,
+            dur: 680,
+            pts: 180,
+            cap: "180",
+            body180: true,
+        },
         ghost: { label: "고스트라이드", minV: 0.3, cap: "150+" },
         // 기존 속도: dur 1000ms
         pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
@@ -365,13 +390,17 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
     const startPosition = 2; // 가운데 앞: 대기·시작·결과 화면의 기본 위치
     const startSpeed = 0;
     const pushDuration = 560;
-    const startFeet = footPair(footPositions.start); // 앞발: 가운데 위, 뒷발: 가운데 아래
+    const startFeet = [...POS[startPosition]];
     const freshCombo = () => ({ pts: 0, n: 0, names: [], counts: {} });
     function newState(mode) {
         return {
             mode,
             t: rideTestPage ? 0 : SESSION,
-            v: rideTestPage ? rideTestSpeed : mode === "title" ? 0.32 : startSpeed,
+            v: rideTestPage
+                ? rideTestSpeed
+                : mode === "title"
+                  ? 0.32
+                  : startSpeed,
             worldX: 0,
             worldZ: 0,
             score: 0,
@@ -380,7 +409,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             panFootYawA: null,
             panFootYawB: null,
             awaitingFirstPush: mode === "play",
-            crossStepStance: false,
             act: null,
             queue: null,
             combo: freshCombo(),
@@ -759,18 +787,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
     }
     function endAct() {
         const A = G.act;
-        const landingPose = newPoses && (A.type === "ncbig" || A.type === "nocomply" || A.type === "step180" || A.type === "step360" || A.type === "pan")
-            ? pose3(0) : null;
+        const landingPose = newPoses && TRICKS[A.type]?.pts ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") {
             G.startFeet = null;
-            G.crossStepStance = false;
         }
         G.act = null;
         if (A.type === "step") {
             G.pos = A.to;
-            G.startFeet = [...crossStepPositions[A.to]];
-            G.crossStepStance = true;
+            G.startFeet = [...POS[A.to]];
             addTrick("크로스스텝", 20, {
                 mult: false,
                 quiet: true,
@@ -794,27 +819,39 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
                 G.worldX = landingPose.B.px / K;
                 G.worldZ = landingPose.B.pz;
                 G.startFeet = [landingPose.J.aA, landingPose.J.aB].map(
-                    foot => 0.5 + (foot.x - landingPose.B.px) / LM,
+                    (foot) => 0.5 + (foot.x - landingPose.B.px) / LM,
                 );
+                const [rear, front] = POS[G.pos];
+                G.startFeet = G.startFeet[0] < G.startFeet[1]
+                    ? [rear, front]
+                    : [front, rear];
                 if (A.type === "pan") {
                     const baseYaw = G.facing ? Math.PI : 0;
                     G.panFootYawA = landingPose.footYawA - baseYaw;
                     G.panFootYawB = landingPose.footYawB - baseYaw;
                 }
             }
-            if (tr.body180 || (newPoses && A.type === "nocomply")) G.facing ^= 1;
+            if (tr.body180 || (newPoses && A.type === "nocomply"))
+                G.facing ^= 1;
             addTrick(tr.label, tr.pts, { key: A.type });
             if (tr.air) {
                 sfx.land();
                 G.landEl = A.el - touchdownOf(A);
             }
         }
-        if (A.type === "pivot" || A.type === "pirouette" || A.type === "step180" || A.type === "step360") G.landEl = 0;
+        if (
+            A.type === "pivot" ||
+            A.type === "pirouette" ||
+            A.type === "step180" ||
+            A.type === "step360"
+        )
+            G.landEl = 0;
         afterAct();
     }
     function endGhost(A) {
         G.act = null;
-        G.pos = 0;
+        G.pos = 1;
+        G.startFeet = null;
         G.landEl = A.el - A.dur;
         const bonus = Math.round(A.run * 90);
         if (A.phase === "flip")
@@ -918,7 +955,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
     function tickCoast(dt) {
         const A = G.act;
         if (rideTestPage) G.v = rideTestSpeed;
-        else if (!A || A.type !== "bail") G.v = Math.max(0, G.v - FRICTION * dt);
+        else if (!A || A.type !== "bail")
+            G.v = Math.max(0, G.v - FRICTION * dt);
         G.worldX += G.v * SPEED * dt;
         return A;
     }
@@ -1950,11 +1988,34 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
     /* ---------- 자세 계산 ---------- */
     const UP = () => V(0, 1, 0);
     const pose3 = createPose3({
-        V, SEG, G_ANK, Y_ANK, L, TAIL, TRUCK, Xw, K, LM, POS, HANG,
-        stepPositions: crossStepPositions,
-        posePage, newPoses, reduce, TRICKS,
-        clamp, lerp, ease, bump, landingDown, touchdownOf,
-        PIVOT_BACK, PIVOT_FRONT, PIVOT_PREP, PIVOT_AXIS, PIVOT_SHIFT,
+        V,
+        SEG,
+        G_ANK,
+        Y_ANK,
+        L,
+        TAIL,
+        TRUCK,
+        Xw,
+        K,
+        LM,
+        POS,
+        HANG,
+        stepPositions: POS,
+        posePage,
+        newPoses,
+        reduce,
+        TRICKS,
+        clamp,
+        lerp,
+        ease,
+        bump,
+        landingDown,
+        touchdownOf,
+        PIVOT_BACK,
+        PIVOT_FRONT,
+        PIVOT_PREP,
+        PIVOT_AXIS,
+        PIVOT_SHIFT,
         get G() {
             return G;
         },
@@ -2540,7 +2601,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
     function tiltRunningShoe(shoe, pitch) {
         // Push-off pivots around the toe contact instead of sinking it into the ground.
         const toe = V(0, -shoe.scale.y, shoe.scale.z * 0.8);
-        const contact = pitch > 0 ? toe.clone().applyQuaternion(shoe.quaternion) : null;
+        const contact =
+            pitch > 0 ? toe.clone().applyQuaternion(shoe.quaternion) : null;
         shoe.rotateX(pitch);
         if (contact) {
             const tiltedContact = toe.applyQuaternion(shoe.quaternion);
@@ -2588,21 +2650,29 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
         const qs = new THREE.Quaternion().setFromRotationMatrix(
             new THREE.Matrix4().makeBasis(Xf, UP(), Zf),
         );
-        const footA = P.footYawA == null ? Zf : V(Math.sin(P.footYawA), 0, Math.cos(P.footYawA));
-        const footB = P.footYawB == null ? Zf : V(Math.sin(P.footYawB), 0, Math.cos(P.footYawB));
+        const footA =
+            P.footYawA == null
+                ? Zf
+                : V(Math.sin(P.footYawA), 0, Math.cos(P.footYawA));
+        const footB =
+            P.footYawB == null
+                ? Zf
+                : V(Math.sin(P.footYawB), 0, Math.cos(P.footYawB));
         r.shoeA.position
             .copy(J.aA)
             .add(V(0, -0.035, 0))
             .addScaledVector(footA, 0.05);
         r.shoeA.quaternion.copy(qs);
-        if (P.footYawA != null) r.shoeA.quaternion.setFromAxisAngle(UP(), P.footYawA);
+        if (P.footYawA != null)
+            r.shoeA.quaternion.setFromAxisAngle(UP(), P.footYawA);
         tiltRunningShoe(r.shoeA, P.footPitchA || 0);
         r.shoeB.position
             .copy(J.aB)
             .add(V(0, -0.035, 0))
             .addScaledVector(footB, 0.05);
         r.shoeB.quaternion.copy(qs);
-        if (P.footYawB != null) r.shoeB.quaternion.setFromAxisAngle(UP(), P.footYawB);
+        if (P.footYawB != null)
+            r.shoeB.quaternion.setFromAxisAngle(UP(), P.footYawB);
         tiltRunningShoe(r.shoeB, P.footPitchB || 0);
     }
 
@@ -2634,7 +2704,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             a = 1 - Math.exp(-dt * 5);
         if (!posePage || (G.act && G.act.type === "ncbig")) {
             // Follow the displaced landing instead of pulling the rider back to the origin.
-            const dx = P.B.px - c0, dz = P.B.pz;
+            const dx = P.B.px - c0,
+                dz = P.B.pz;
             tp.x += dx;
             tp.z += dz;
             tl.x += dx;
@@ -2797,7 +2868,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             A = G.act,
             ghost = !!(A && A.type === "ghost");
         const slots = slotInfo();
-        tbs.forEach((button, i) => { button.hidden = !slots[i]; });
+        tbs.forEach((button, i) => {
+            button.hidden = !slots[i];
+        });
         const trickRow = $("#trickrow");
         if (trickRow) {
             tog(trickRow, "four", slots.length === 4);
@@ -3036,7 +3109,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
     const APP_NAME = MODE === "3d" ? "보드를 타보자!" : "다리밑 세션";
     const FILE_NAME = MODE === "3d" ? "lets-ride.png" : "darimit-session.png";
     /* ---------- 이름 · 보드 꾸미기 · 칭호 ---------- */
-    const XKEY = rideTestPage ? "darimit-ride-test-extra.v1" : "darimit-extra.v1";
+    const XKEY = rideTestPage
+        ? "darimit-ride-test-extra.v1"
+        : "darimit-extra.v1";
     const DECKS = [
         { id: "maple", ko: "메이플", en: "Maple", c: "#C99A5E" },
         { id: "black", ko: "블랙", en: "Black", c: "#2E2E30" },
@@ -4203,12 +4278,20 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             trick: "biggerspin",
         },
         {
-            id: "step360", group: "트릭", label: "360 스텝", en: "360 step",
-            pos: 1, trick: "step360",
+            id: "step360",
+            group: "트릭",
+            label: "360 스텝",
+            en: "360 step",
+            pos: 1,
+            trick: "step360",
         },
         {
-            id: "step180", group: "트릭", label: "180 스텝", en: "180 step",
-            pos: 1, trick: "step180",
+            id: "step180",
+            group: "트릭",
+            label: "180 스텝",
+            en: "180 step",
+            pos: 1,
+            trick: "step180",
         },
         {
             id: "nocomply",
@@ -4326,8 +4409,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
         if (!poseSpec) return;
         G.pos = poseSpec.pos;
         G.facing = poseFacing;
-        G.crossStepStance = false;
-        G.startFeet = poseSpec.act?.type === "step" ? [...crossStepPositions[poseSpec.act.from]] : null;
+        G.startFeet =
+            poseSpec.act?.type === "step"
+                ? [...POS[poseSpec.act.from]]
+                : null;
         G.act = makePose(poseSpec);
     }
     function playPose(id, facing = poseFacing) {
@@ -4336,8 +4421,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
         poseSpec = spec;
         poseFacing = facing === 1 ? 1 : 0;
         G.mode = "pose";
-        G.startFeet = spec.act?.type === "step" ? [...crossStepPositions[spec.act.from]] : null;
-        G.crossStepStance = false;
+        G.startFeet =
+            spec.act?.type === "step"
+                ? [...POS[spec.act.from]]
+                : null;
         G.queue = null;
         G.shake = 0;
         G.facing = poseFacing;
@@ -4394,20 +4481,22 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-peter-pan-duration-1200"
             const index = (A.pathIndex || 0) + 1;
             const next = index % (path.length - 1);
             G.pos = A.to;
-            G.startFeet = [...crossStepPositions[A.to]];
-            G.crossStepStance = true;
+            G.startFeet = [...POS[A.to]];
             G.act = {
-                type: "step", from: G.pos, to: path[next + 1],
-                dur: A.dur, el: A.el - A.dur, prevE: 0, pathIndex: next,
+                type: "step",
+                from: G.pos,
+                to: path[next + 1],
+                dur: A.dur,
+                el: A.el - A.dur,
+                prevE: 0,
+                pathIndex: next,
             };
-        }
-        else if (A.type === "ghost") advanceGhost(A, dt);
+        } else if (A.type === "ghost") advanceGhost(A, dt);
         else if (A.type === "hang10") advanceHang(A);
         else if (A.type === "ncbig") {
             // Keep the landing direction and position; clicking the demo replays it.
             A.el = Math.min(A.el, A.dur + 480);
-        }
-        else if (A.el >= A.dur + 480) replayPose();
+        } else if (A.el >= A.dur + 480) replayPose();
     }
 
     /* ---------- 시작 ---------- */
