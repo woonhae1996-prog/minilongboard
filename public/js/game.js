@@ -5,7 +5,7 @@ import {
     standingPositions,
     crossStepPositions,
 } from "./pose/foot-positions.js?v=20261111-cross-step-planted";
-import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
+import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
 
 (function () {
     "use strict";
@@ -60,7 +60,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
             ? A.dur - (80 * A.dur) / 1150
             : A.type === "ghost"
               ? A.dur
-              : A.dur * (A.type === "ncbig" ? 0.81 - 200 / 1500 : 1);
+              : A.type === "popshuv" || A.type === "frontpop" || A.type === "varialkickflip" || A.type === "hardflip"
+                ? A.dur * 0.8
+                : A.dur * (A.type === "ncbig" ? 0.81 - 200 / 1500 : 1);
     function hsh(i) {
         const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
         return x - Math.floor(x);
@@ -73,6 +75,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
         킥플립: "Kickflip",
         힐플립: "Heelflip",
         셔빗: "Shove-it",
+        팝샤빗: "Pop shove-it",
+        프론팝: "Front pop",
+        "베리얼 킥플립": "Varial kickflip",
+        "하드 플립": "Hard flip",
         노컴플라이: "No comply",
         고스트라이드: "Ghost ride",
         "고스트라이드 킥플립": "Ghost ride kickflip",
@@ -121,6 +127,42 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
             pts: "350",
             how: "테일을 팝하고 보드를 뒤꿈치 쪽으로 한 바퀴 뒤집어 착지해요",
             howEn: "Pop the tail and flip the board once toward your heels before landing.",
+        },
+        {
+            id: "popshuv",
+            label: "팝샤빗",
+            zone: "테일",
+            zoneEn: "Tail",
+            pts: "250",
+            how: "뒷발로 테일을 팝해 점프하고, 몸은 그대로 보드만 180° 돌린 뒤 다운 착지해요",
+            howEn: "Pop the tail, jump without turning your body, and land low after a 180° board spin.",
+        },
+        {
+            id: "varialkickflip",
+            label: "베리얼 킥플립",
+            zone: "테일",
+            zoneEn: "Tail",
+            pts: "450",
+            how: "팝샤빗의 180° 스핀과 킥플립 방향의 360° 플립을 동시에 넣고 다운 착지해요",
+            howEn: "Combine a 180° pop shove-it with one simultaneous kickflip, then land low without turning your body.",
+        },
+        {
+            id: "hardflip",
+            label: "하드 플립",
+            zone: "테일",
+            zoneEn: "Tail",
+            pts: "450",
+            how: "프론팝의 180° 스핀과 힐플립 방향의 360° 플립을 동시에 넣고 다운 착지해요",
+            howEn: "Combine a 180° front pop with one simultaneous heelflip, then land low without turning your body.",
+        },
+        {
+            id: "frontpop",
+            label: "프론팝",
+            zone: "테일",
+            zoneEn: "Tail",
+            pts: "250",
+            how: "뒷발로 테일을 팝해 점프하고, 몸은 그대로 보드를 팝샤빗과 반대로 180° 돌린 뒤 다운 착지해요",
+            howEn: "Pop the tail and spin the board 180° opposite to a pop shove-it, without turning your body.",
         },
         {
             id: "shuv",
@@ -277,6 +319,42 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
             boardSpinOrFlip: true,
             cap: "350",
         },
+        popshuv: {
+            label: "팝샤빗",
+            minV: 0.2,
+            dur: 1250,
+            pts: 250,
+            air: [0.18, 0.8],
+            boardSpinOrFlip: true,
+            cap: "250",
+        },
+        varialkickflip: {
+            label: "베리얼 킥플립",
+            minV: 0.2,
+            dur: 1250,
+            pts: 450,
+            air: [0.18, 0.8],
+            boardSpinOrFlip: true,
+            cap: "450",
+        },
+        hardflip: {
+            label: "하드 플립",
+            minV: 0.2,
+            dur: 1250,
+            pts: 450,
+            air: [0.18, 0.8],
+            boardSpinOrFlip: true,
+            cap: "450",
+        },
+        frontpop: {
+            label: "프론팝",
+            minV: 0.2,
+            dur: 1250,
+            pts: 250,
+            air: [0.18, 0.8],
+            boardSpinOrFlip: true,
+            cap: "250",
+        },
         shuv: {
             label: "셔빗",
             minV: 0.2,
@@ -362,7 +440,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
         pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 200, cap: "200" },
     };
     const SLOTS = [
-        ["kickflip", "heelflip", "nocomply"],
+        ["kickflip", "heelflip", "nocomply", "popshuv", "frontpop", "varialkickflip", "hardflip"],
         [null, null, "ghost", "step180", "step360"],
         ["pan", "pirouette", "varial", "mango"],
         ["pivot", "shuv", "ncbig", "bigspin", "biggerspin"],
@@ -2655,7 +2733,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
     function renderBoard(dt, time, c0, P) {
         const B = P.B;
         R.bOuter.position.set(B.px, B.py, B.pz);
-        R.bOuter.rotation.set(B.roll, B.yaw, B.pitch);
+        R.bOuter.rotation.set(B.roll, B.yaw, B.pitch, B.rotationOrder || "YZX");
         R.bInner.position.set(-B.lx, -B.ly, -B.lz);
         const spin = -c0 / 0.035;
         R.wheels.forEach((w) => {
@@ -4326,6 +4404,38 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-mango-step6b";
             en: "Push",
             pos: 1,
             act: { type: "push", dur: pushDuration, boosted: false },
+        },
+        {
+            id: "popshuv",
+            group: "트릭",
+            label: "팝샤빗",
+            en: "Pop shove-it",
+            pos: 0,
+            trick: "popshuv",
+        },
+        {
+            id: "varialkickflip",
+            group: "트릭",
+            label: "베리얼 킥플립",
+            en: "Varial kickflip",
+            pos: 0,
+            trick: "varialkickflip",
+        },
+        {
+            id: "hardflip",
+            group: "트릭",
+            label: "하드 플립",
+            en: "Hard flip",
+            pos: 0,
+            trick: "hardflip",
+        },
+        {
+            id: "frontpop",
+            group: "트릭",
+            label: "프론팝",
+            en: "Front pop",
+            pos: 0,
+            trick: "frontpop",
         },
         {
             id: "shuv",
