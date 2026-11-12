@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;600&display=swap">
-<link rel="stylesheet" href="/css/style.css?v=20261111-peter-pan-duration-1200">
+<link rel="stylesheet" href="/css/style.css?v=20261112-trick-dancing-button-colors">
 </head>
 <body>
 <div class="wrap">
@@ -32,7 +32,7 @@
     <dl class="bests" hidden>
       <div><dt>최고 점수<span class="en">Best score</span></dt><dd id="best">0</dd></div>
       <div><dt>최고 콤보<span class="en">Best combo</span></dt><dd id="best-combo">0</dd></div>
-      <div><dt>트릭 도감<span class="en">Trick book</span></dt><dd id="dex-top">0/12</dd></div>
+      <div><dt>트릭 · 댄싱 도감<span class="en">Tricks · Dancing</span></dt><dd id="dex-top">0/12</dd></div>
     </dl>
   </header>
 
@@ -94,6 +94,7 @@
     </div>
 
     <div class="controls">
+      <div class="action-legend" aria-label="동작 종류 Action types"><span><i></i>트릭<span class="en">Trick</span></span><span><i class="dance-key"></i>댄싱<span class="en">Dancing</span></span></div>
       <div class="row3" id="trickrow">
         <button class="tb dim" type="button" data-slot="0"><span class="tl">셔빗</span><span class="te">Shove-it</span><small class="tc">250</small></button>
         <button class="tb dim" type="button" data-slot="1"><span class="tl">노컴플라이</span><span class="te">No comply</span><small class="tc">220</small></button>
@@ -133,7 +134,7 @@
   </section>
 
   <section hidden class="guide" aria-labelledby="g-h">
-    <div class="guide-head"><h2 id="g-h">트릭 도감<span class="en">Trick book</span></h2><span class="dex-count" id="dex-count"></span></div>
+    <div class="guide-head"><h2 id="g-h">트릭 · 댄싱 도감<span class="en">Tricks · Dancing</span></h2><span class="dex-count" id="dex-count"></span></div>
     <ul class="dex" id="dex"></ul>
     <ul class="rules" hidden>
       <li><b>푸시</b>가운데 앞·뒤 두 곳에서만 발을 굴러 속도를 올릴 수 있어요.<span class="en"><b>Push</b>Push from either of the two middle spots to gain speed.</span></li>
@@ -174,6 +175,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script type="module" src="/js/game.js?v=20261112-mango-score-duration"></script>
+<script type="module" src="/js/game.js?v=20261112-trick-dancing-button-colors"></script>
 </body>
 </html>

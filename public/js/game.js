@@ -100,6 +100,25 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
     const en = (ko) => EN[ko] || ko;
     const GHOST_BASE_PTS = 80;
     const GHOSTFLIP_BASE_PTS = 140;
+    const DEX_GROUPS = [
+        { id: "trick", label: "트릭", en: "Tricks" },
+        { id: "dancing", label: "댄싱", en: "Dancing" },
+    ];
+    const TRICK_DEX_IDS = new Set([
+        "kickflip",
+        "heelflip",
+        "popshuv",
+        "varialkickflip",
+        "hardflip",
+        "frontpop",
+        "nocomply",
+        "shuv",
+        "bigspin",
+        "biggerspin",
+        "ncbig",
+        "ghostflip",
+        "pivot",
+    ]);
     const CAT = [
         {
             id: "nose",
@@ -517,28 +536,38 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
     function renderDex() {
         const ul = $("#dex");
         ul.textContent = "";
-        for (const c of CAT) {
-            const done = !!best.landed[c.id];
-            const li = el("li", done ? "done" : "");
-            const top = el("div", "dex-top");
-            const chk = el("span", "dex-check", done ? "✓" : "");
-            chk.setAttribute(
-                "aria-label",
-                done ? "랜딩함 landed" : "아직 not yet",
+        for (const group of DEX_GROUPS) {
+            const heading = el("li", "dex-section");
+            heading.append(
+                el("b", "", group.label),
+                el("span", "en", group.en),
             );
-            top.append(
-                chk,
-                el("b", "", c.label),
-                el("span", "zone", c.zone),
-                el("span", "dex-pts", c.pts),
-            );
-            li.append(
-                top,
-                el("span", "dex-en", en(c.label) + " · " + c.zoneEn),
-                el("p", "", c.how),
-                el("p", "en", c.howEn),
-            );
-            ul.appendChild(li);
+            ul.appendChild(heading);
+            for (const c of CAT) {
+                const category = TRICK_DEX_IDS.has(c.id) ? "trick" : "dancing";
+                if (category !== group.id) continue;
+                const done = !!best.landed[c.id];
+                const li = el("li", done ? "done" : "");
+                const top = el("div", "dex-top");
+                const chk = el("span", "dex-check", done ? "✓" : "");
+                chk.setAttribute(
+                    "aria-label",
+                    done ? "랜딩함 landed" : "아직 not yet",
+                );
+                top.append(
+                    chk,
+                    el("b", "", c.label),
+                    el("span", "zone", c.zone),
+                    el("span", "dex-pts", c.pts),
+                );
+                li.append(
+                    top,
+                    el("span", "dex-en", en(c.label) + " · " + c.zoneEn),
+                    el("p", "", c.how),
+                    el("p", "en", c.howEn),
+                );
+                ul.appendChild(li);
+            }
         }
         $("#dex-count").textContent =
             "랜딩 Landed " + landedCount() + " / " + CAT.length;
@@ -2970,6 +2999,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                     e: "Hop on",
                     c: "+" + (GHOST_BASE_PTS + b),
                     dim: false,
+                    category: "dancing",
                 },
                 {
                     l: "킥플립 캐치",
@@ -2979,12 +3009,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                             ? "더 달려 keep running"
                             : "+" + (GHOSTFLIP_BASE_PTS + b),
                     dim: A.run < 0.8,
+                    category: "trick",
                 },
                 {
                     l: "달리는 중",
                     e: "Running",
                     c: (3.2 - A.run).toFixed(1) + "s",
                     dim: true,
+                    category: "dancing",
                 },
             ];
         }
@@ -2996,6 +3028,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                 e: en(tr.label),
                 c: tr.cap,
                 dim: !play || G.v < tr.minV || !!(A && A.type === "ghost"),
+                category: TRICK_DEX_IDS.has(id) ? "trick" : "dancing",
             };
         });
     }
@@ -3049,6 +3082,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             setText(tCap[i], "tc" + i, s.c);
             tog(tbs[i], "now", !!s.now);
             tog(tbs[i], "dim", !!s.dim);
+            tog(tbs[i], "trick", s.category === "trick");
+            tog(tbs[i], "dancing", s.category === "dancing");
         });
         tog(bPush, "dim", !play || !canPush(G.pos) || ghost);
         pushNote.hidden = !play || canPush(G.pos) || ghost;
@@ -4391,7 +4426,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         { id: "nose", group: "서기", label: "노즈", en: "Nose", pos: 3 },
         {
             id: "step",
-            group: "이동",
+            group: "댄싱",
             label: "크로스스텝",
             en: "Cross-step",
             pos: 0,
@@ -4399,7 +4434,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "push",
-            group: "이동",
+            group: "댄싱",
             label: "푸시",
             en: "Push",
             pos: 1,
@@ -4479,7 +4514,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "step360",
-            group: "트릭",
+            group: "댄싱",
             label: "360 스텝",
             en: "360 step",
             pos: 1,
@@ -4487,7 +4522,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "step180",
-            group: "트릭",
+            group: "댄싱",
             label: "180 스텝",
             en: "180 step",
             pos: 1,
@@ -4513,7 +4548,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "ghost",
-            group: "트릭",
+            group: "댄싱",
             label: "고스트라이드",
             en: "Ghost ride",
             pos: 1,
@@ -4529,7 +4564,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "pan",
-            group: "트릭",
+            group: "댄싱",
             label: "피터팬",
             en: "Peter Pan",
             pos: 2,
@@ -4537,7 +4572,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "mango",
-            group: "트릭",
+            group: "댄싱",
             label: "망고",
             en: "Mango",
             pos: 2,
@@ -4545,7 +4580,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "pirouette",
-            group: "트릭",
+            group: "댄싱",
             label: "피루엣",
             en: "Pirouette",
             pos: 2,
@@ -4553,7 +4588,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "varial",
-            group: "트릭",
+            group: "댄싱",
             label: "바디 배리얼",
             en: "Body varial",
             pos: 2,
@@ -4569,7 +4604,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "hang5",
-            group: "미리보기",
+            group: "댄싱",
             label: "행파이브",
             en: "Hang five",
             pos: 3,
@@ -4577,7 +4612,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         },
         {
             id: "hang10",
-            group: "미리보기",
+            group: "댄싱",
             label: "행텐",
             en: "Hang ten",
             pos: 3,

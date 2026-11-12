@@ -41,6 +41,8 @@
     if(!g){ g = {name:p.group, items:[]}; groups.push(g); }
     g.items.push(p);
   });
+  const groupOrder = new Map([['서기', 0], ['트릭', 1], ['댄싱', 2]]);
+  groups.sort((a, b) => (groupOrder.get(a.name) ?? 3) - (groupOrder.get(b.name) ?? 3));
   const tip = document.createElement('p');
   tip.className = 'pose-tip';
   tip.hidden = true;

@@ -4,7 +4,7 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0}
 [hidden]{display:none!important}
 
-/* Layout: 한 화면 게임기 — 위에 스팟 이름, 가운데 3D 다리 밑(WebGL), 아래 엄지용 트릭 줄 + 이동 줄, 시점 전환, 트릭 도감.
+/* Layout: 한 화면 게임기 — 위에 스팟 이름, 가운데 3D 다리 밑(WebGL), 아래 엄지용 동작 줄 + 이동 줄, 시점 전환, 동작 도감.
    모든 한국어 바로 밑에 영어 한 줄. Single dark theme on purpose: 한강 다리 밑, 나트륨 가로등 주황빛. */
 :root{
   color-scheme:dark;
@@ -91,9 +91,14 @@ button{font:inherit;color:inherit}
 .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .pb,.tb{border-radius:10px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15;transition:opacity .15s;padding:4px 6px;text-align:center;min-width:0}
 .tb{height:66px;border:1px solid rgba(242,165,65,.45);background:var(--lamp-soft);color:var(--ink);font-size:14.5px;font-weight:600}
+.tb.trick{border-color:rgba(242,165,65,.58);background:rgba(242,165,65,.14)}
+.tb.dancing{border-color:rgba(127,209,190,.48);background:rgba(127,209,190,.12)}
 .tb .te{font-size:10.5px;font-weight:400;color:#C9B9A3}
+.tb.dancing .te{color:#A9C9C0}
 .tb small{font-family:var(--f-mono);font-size:11px;font-weight:500;color:var(--lamp);margin-top:1px}
+.tb.dancing small{color:var(--mint)}
 .tb:active{background:#3A2C1A}
+.tb.dancing:active{background:rgba(127,209,190,.24)}
 .tb.now{background:var(--mint);border-color:var(--mint);color:var(--on-lamp)}
 .tb.now .te,.tb.now small{color:var(--on-lamp)}
 .pb{height:58px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:15px;font-weight:600}
@@ -120,6 +125,8 @@ button{font:inherit;color:inherit}
 .dex-count{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
 .dex{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px}
 .dex li{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:3px;min-width:0;background:var(--bg)}
+.dex li.dex-section{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;margin-top:8px;padding:4px 2px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:17px}
+.dex-section .en{font-size:12px}
 .dex li.done{border-color:rgba(127,209,190,.45)}
 .dex-top{display:flex;align-items:center;gap:8px;min-width:0}
 .dex-top b{font-weight:600}
@@ -243,3 +250,8 @@ button{font:inherit;color:inherit}
 #trickrow.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 
 #trickrow.five{grid-template-columns:repeat(3,minmax(0,1fr))}
+.action-legend{display:flex;justify-content:center;gap:14px;margin:-5px 0 5px;color:var(--muted);font-size:11px}
+.action-legend>span{display:inline-flex;align-items:center;gap:5px}
+.action-legend .en{display:inline;margin-left:3px;font-size:10px}
+.action-legend i{width:8px;height:8px;border-radius:50%;background:#F2A541}
+.action-legend .dance-key{background:var(--mint)}
