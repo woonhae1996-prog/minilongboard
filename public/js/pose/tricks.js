@@ -1,6 +1,6 @@
 export function createTricks(env) {
     const {
-        V, POS, HANG, Xw, TAIL, L, TRUCK, Y_ANK, G_ANK, LM, K,
+        V, POS, Xw, TAIL, L, TRUCK, Y_ANK, G_ANK, LM, K,
         ease, lerp, clamp, bump, newPoses, stepPositions = POS,
         PIVOT_BACK, PIVOT_FRONT, PIVOT_PREP, PIVOT_AXIS, PIVOT_SHIFT,
     } = env;
@@ -1120,46 +1120,6 @@ export function createTricks(env) {
         });
     }
 
-    function poseHang5(ctx) {
-        const { A, t, e, B, side, faceFwd, c0, shake } = ctx;
-        let {
-            pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
-            ga, gb, fall, alpha, runMix, cyc,
-        } = ctx;
-        const q =
-            t < 0.25
-                ? ease(t / 0.25)
-                : t > 0.75
-                  ? 1 - ease((t - 0.75) / 0.25)
-                  : 1;
-        pa = lerp(POS[3][0], 0.99, q);
-        lean = -0.2 * q;
-        arms = 0.45 + 0.5 * q;
-        Object.assign(ctx, {
-            pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
-            ga, gb, fall, alpha, runMix, cyc,
-        });
-    }
-
-    function poseHang10(ctx) {
-        const { A, t, e, B, side, faceFwd, c0, shake } = ctx;
-        let {
-            pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
-            ga, gb, fall, alpha, runMix, cyc,
-        } = ctx;
-        let q = 1;
-        if (A.phase === "in") q = ease(t);
-        else if (A.phase === "out") q = 1 - ease(t);
-        pa = lerp(POS[3][0], HANG[0], q);
-        pb = lerp(POS[3][1], HANG[1], q);
-        lean = -0.32 * q;
-        arms = 0.45 + 0.8 * q;
-        Object.assign(ctx, {
-            pa, pb, la, lb, za, zb, hop, lean, arms, yaw, hipDrop, hipZ,
-            ga, gb, fall, alpha, runMix, cyc,
-        });
-    }
-
     function posePivot(ctx) {
         const { A, t, e, B, side, faceFwd, c0, shake } = ctx;
         let {
@@ -1297,8 +1257,6 @@ export function createTricks(env) {
         ncbig: poseNcBig,
         pirouette: posePirouette,
         varial: poseVarial,
-        hang5: poseHang5,
-        hang10: poseHang10,
         pivot: posePivot,
         ghost: poseGhost,
         bail: poseBail,
