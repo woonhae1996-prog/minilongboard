@@ -17,7 +17,6 @@ export const footPositions = {
     ...Object.fromEntries(Object.entries(standingCenters)
         .map(([name, center]) => [name, standingFeet(center)])),
     pivot: { front: 0.93, rear: 0.5 },
-    hang: { front: 0.985, rear: 0.92 },
 };
 
 export const footPair = (position, frontLeg = "A") => frontLeg === "A"

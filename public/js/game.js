@@ -1,11 +1,10 @@
 // js: 프레임 루프, 판정, 3D 화면, 조작 UI.
 import {
     footPositions,
-    footPair,
     standingPositions,
     crossStepPositions,
-} from "./pose/foot-positions.js?v=20261111-cross-step-planted";
-import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
+} from "./pose/foot-positions.js?v=20261112-no-hang-poses";
+import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
 
 (function () {
     "use strict";
@@ -36,7 +35,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
     const FEVER_PTS = 1600,
         FEVER_T = 7;
     const POS = standingPositions;
-    const HANG = footPair(footPositions.hang, "B");
     const KEY = rideTestPage ? "darimit-ride-test.v1" : "darimit-session-3d.v1";
     const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -86,9 +84,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         망고: "Mango",
         피루엣: "Pirouette",
         "바디 배리얼": "Body varial",
-        행파이브: "Hang five",
-        행텐: "Hang ten",
-        "행텐 퍼펙트": "Hang ten perfect",
         "180 피봇": "180 pivot",
         "180 스텝": "180 step",
         "360 스텝": "360 step",
@@ -98,7 +93,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         "노컴 빅스핀": "No comply big spin",
     };
     const en = (ko) => EN[ko] || ko;
-    const GHOST_BASE_PTS = 80;
+    const GHOST_BASE_PTS = 60;
     const GHOSTFLIP_BASE_PTS = 140;
     const DEX_GROUPS = [
         { id: "trick", label: "트릭", en: "Tricks" },
@@ -118,6 +113,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         "ncbig",
         "ghostflip",
         "pivot",
+        "hop",
     ]);
     const CAT = [
         {
@@ -125,7 +121,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "노즈 워크",
             zone: "이동",
             zoneEn: "Move",
-            pts: "100",
+            pts: "70",
             how: "크로스스텝으로 테일에서 노즈 끝까지 걸어가기",
             howEn: "Cross-step from the tail all the way to the nose.",
         },
@@ -233,7 +229,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "360 스텝",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "240",
+            pts: "170",
             how: "레귤러 기준 180 스텝 뒤 오른발을 고정하고 왼발을 그 앞꿈치의 보드 왼편에 모아요. 오른발을 시계 방향으로 돌려 가운데 뒤에 착지해요",
             howEn: "Continue the 180 step by gathering the left foot to the right toes, then sweeping the right foot clockwise back to rear middle.",
         },
@@ -242,7 +238,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "180 스텝",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "120",
+            pts: "80",
             how: "레귤러 기준 왼발을 오른발 앞꿈치의 보드 오른편에 수직으로 모은 뒤, 오른발을 반시계로 돌리며 몸도 180° 돌아요",
             howEn: "Step with each foot in turn to rotate your body 180° while the board stays straight.",
         },
@@ -269,7 +265,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "피터팬",
             zone: "가운데 앞",
             zoneEn: "Front middle",
-            pts: "250",
+            pts: "180",
             how: "왼발을 오른발 앞꿈치의 보드 오른편에 모으고, 오른발을 왼편으로 옮긴 뒤 왼발을 가운데 위에 놓아요",
             howEn: "Gather the left foot at the right toes, sweep the right foot to the opposite side, then place the left foot at upper middle.",
         },
@@ -278,7 +274,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "망고",
             zone: "가운데 앞",
             zoneEn: "Front middle",
-            pts: "280",
+            pts: "200",
             how: "1·2번은 피터팬과 같아요. 3번은 왼무릎을 15° 굽히고 오른다리를 왼다리 오른쪽 허공에 띄워요. 4번부터 왼무릎을 40°까지 굽히며 상체를 앞으로 기울여요. 오른발은 지면을 따라 바깥쪽 곡선으로 테일 뒤와 왼쪽 바퀴 바깥까지 끌어요. 상체는 오른쪽 45°에서 30°로 돌아요. 6번은 점프하고, 7번은 점프 여파로 몸을 낮추며 오른발을 몸 쪽으로 더 끌어와 주행 방향을 바라봐요.",
             howEn: "Steps 1 and 2 match Peter Pan. Step 3 bends the left knee 15° and lifts the right foot to the left leg's right. From step 4, the left knee bends to 40° as the torso leans forward. The right foot stays grounded and follows an outward curve behind the tail and outside the left wheel. The torso turns from 45° to 30° right. Step 6 jumps; step 7 absorbs the hop with a dip, pulls the right foot closer, and faces the direction of travel.",
         },
@@ -287,7 +283,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "피루엣",
             zone: "가운데 앞",
             zoneEn: "Front middle",
-            pts: "300",
+            pts: "210",
             how: "앞발을 진행 방향으로 돌린 뒤, 보드 위에서 몸을 360° 돌려요",
             howEn: "Turn the front foot toward travel, then spin your body 360° on the board.",
         },
@@ -296,7 +292,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "바디 배리얼",
             zone: "가운데 앞",
             zoneEn: "Front middle",
-            pts: "280",
+            pts: "200",
             how: "점프해서 몸만 360° 한 바퀴 돌고 보드는 그대로 굴러가요",
             howEn: "Jump and spin your body a full 360° while the board keeps rolling.",
         },
@@ -426,34 +422,34 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             label: "360 스텝",
             minV: 0.2,
             dur: 1200,
-            pts: 240,
-            cap: "240",
+            pts: 170,
+            cap: "170",
         },
         step180: {
             label: "180 스텝",
             minV: 0.2,
             dur: 580,
-            pts: 120,
-            cap: "120",
+            pts: 80,
+            cap: "80",
             body180: true,
         },
         ghost: { label: "고스트라이드", minV: 0.3, cap: GHOST_BASE_PTS + "+" },
-        pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
-        mango: { label: "망고", minV: 0.2, dur: 1800, pts: 280, cap: "280" },
+        pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 180, cap: "180" },
+        mango: { label: "망고", minV: 0.2, dur: 1800, pts: 200, cap: "200" },
         pirouette: {
             label: "피루엣",
             minV: 0.25,
             dur: 920,
-            pts: 300,
-            cap: "300",
+            pts: 210,
+            cap: "210",
         },
         varial: {
             label: "바디 배리얼",
             minV: 0.25,
             dur: 700,
-            pts: 280,
+            pts: 200,
             air: [0.15, 0.85],
-            cap: "280",
+            cap: "200",
         },
         pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 200, cap: "200" },
     };
@@ -588,6 +584,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                 : mode === "title"
                   ? 0.32
                   : startSpeed,
+            pushStreak: 0,
+            pushChainTimer: 0,
             worldX: 0,
             worldZ: 0,
             score: 0,
@@ -737,15 +735,24 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
     document.addEventListener("pointerup", unlock, { passive: true });
     document.addEventListener("keydown", unlock);
 
-    /* ---------- 팝업 · 미터 ---------- */
+    /* ---------- 팝업 ---------- */
     const pops = $("#pops");
     let lastHint = "",
         lastHintAt = 0;
-    function popup(ko, enText, kind) {
+    function popup(ko, enText, kind, detail) {
         while (pops.childElementCount > 3) pops.firstChild.remove();
         const p = el("div", "pop" + (kind ? " " + kind : ""));
         p.append(el("span", "k", ko), el("span", "e", enText || ""));
-        p.style.top = pops.childElementCount * 40 + "px";
+        if (detail) p.append(el("span", "detail", detail));
+        const top = [...pops.children].reduce(
+            (max, child) =>
+                Math.max(
+                    max,
+                    Number.parseFloat(child.style.top || "0") + child.offsetHeight,
+                ),
+            0,
+        );
+        p.style.top = (top ? top + 6 : 0) + "px";
         pops.appendChild(p);
         const dur = kind === "gold" || kind === "bad" ? 1300 : 950;
         if (p.animate) {
@@ -779,19 +786,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         popup(ko, enText, "hint");
     }
 
-    const meterEl = $("#meter"),
-        zoneEl = $("#zone"),
-        perfEl = $("#perfect"),
-        needleEl = $("#needle");
-    function showMeter(A) {
-        zoneEl.style.left = (A.zc - A.zw / 2) * 100 + "%";
-        zoneEl.style.width = A.zw * 100 + "%";
-        perfEl.style.left = (A.zc - A.pw / 2) * 100 + "%";
-        perfEl.style.width = A.pw * 100 + "%";
-        meterEl.hidden = false;
-    }
-    const needleVal = (A) => 0.5 - 0.5 * Math.cos((2 * Math.PI * A.el) / 1100);
-
     /* ---------- 트릭 · 콤보 ---------- */
     function addTrick(label, base, o) {
         o = o || {};
@@ -810,10 +804,16 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         if (o.mult !== false && G.landedSet.indexOf(label) < 0)
             G.landedSet.push(label);
         if (!o.quiet) {
+            const speedPts = Math.round((o.speedBoost || 0) * 100);
+            const speedDetail =
+                speedPts > 0
+                    ? "속도 +" + speedPts + "% · Speed +" + speedPts + "%"
+                    : "";
             popup(
                 label + " +" + pts,
                 en(label) + " +" + pts + (fv > 1 ? " · FEVER ×2" : ""),
                 fv > 1 ? "fv" : "",
+                speedDetail,
             );
             sfx.trick();
         }
@@ -852,8 +852,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         G.combo = freshCombo();
     }
     function bail(ko, enText) {
-        meterEl.hidden = true;
         popup(ko, enText, "bad");
+        G.pushStreak = 0;
+        G.pushChainTimer = 0;
         if (G.combo.pts > 0)
             setTimeout(() => popup("콤보 날아감", "Combo lost", "bad"), 180);
         G.combo = freshCombo();
@@ -866,10 +867,25 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
     }
     function startAct(type, extra) {
         G.panFootYawA = G.panFootYawB = null;
+        if (type !== "push") {
+            G.pushStreak = 0;
+            G.pushChainTimer = 0;
+        }
         G.act = Object.assign({ type, el: 0, prevE: 0 }, extra);
         if (type === "step") G.act.fromFeet = [...(G.startFeet || POS[G.pos])];
     }
 
+    const PUSH_SPEED_BOOST = 0.24;
+    const PUSH_CHAIN_BONUS_RATIO = 1 / 6;
+    const PUSH_CHAIN_BONUS_CAP_RATIO = 0.5;
+    const PUSH_CHAIN_WINDOW = 2.5;
+    function applySpeedBoost(multiplier = 1) {
+        const previousSpeed = G.v;
+        G.v = rideTestPage
+            ? rideTestSpeed
+            : Math.min(1, G.v + PUSH_SPEED_BOOST * multiplier);
+        return Math.max(0, G.v - previousSpeed);
+    }
     const canPush = (pos) => pos === 1 || pos === 2;
 
     let lastKey = 0;
@@ -879,10 +895,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         const A = G.act;
         const slot = kind.indexOf("slot") === 0 ? Number(kind.slice(4)) : -1;
         if (A) {
-            if (A.type === "hang10" && A.phase === "meter" && slot >= 0) {
-                judgeHang();
-                return;
-            }
             if (A.type === "ghost" && A.phase === "run") {
                 if (slot === 0) {
                     A.phase = "jump";
@@ -902,7 +914,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             }
             if (
                 A.type === "bail" ||
-                A.type === "hang10" ||
                 A.type === "ghost" ||
                 A.type === "pivot"
             )
@@ -950,22 +961,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             }
         }
     }
-    function judgeHang() {
-        const A = G.act,
-            d = Math.abs(needleVal(A) - A.zc);
-        meterEl.hidden = true;
-        if (d <= A.pw / 2) {
-            addTrick("행텐 퍼펙트", 600, { key: "hang10" });
-            A.phase = "hold";
-            A.el = 0;
-            A.dur = 520;
-        } else if (d <= A.zw / 2) {
-            addTrick("행텐", 320, { key: "hang10" });
-            A.phase = "hold";
-            A.el = 0;
-            A.dur = 520;
-        } else bail("균형 잃음", "Lost balance");
-    }
     function afterAct() {
         if (G.queue && G.mode === "play" && !G.act) {
             const q = G.queue;
@@ -987,12 +982,13 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             G.pos = A.to;
             G.startFeet = [...crossStepPositions[A.to]];
             G.crossStepStance = true;
-            addTrick("크로스스텝", 20, {
+            addTrick("크로스스텝", 10, {
                 mult: false,
                 quiet: true,
                 norep: true,
             });
-            if (A.to === 3) addTrick("노즈 워크", 100, { key: "nose" });
+            if (A.to === 3)
+                addTrick("노즈 워크", 70, { key: "nose" });
         } else if (A.type === "bail") {
             G.pos = startPosition;
             G.startFeet = [...startFeet];
@@ -1025,7 +1021,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             }
             if (tr.body180 || (newPoses && A.type === "nocomply"))
                 G.facing ^= 1;
-            addTrick(tr.label, tr.pts, { key: A.type });
+            const speedBoost = TRICK_DEX_IDS.has(A.type)
+                ? 0
+                : applySpeedBoost(0.5);
+            addTrick(tr.label, tr.pts, { key: A.type, speedBoost });
             if (tr.air) {
                 sfx.land();
                 G.landEl = A.el - touchdownOf(A);
@@ -1051,7 +1050,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             addTrick("고스트라이드 킥플립", GHOSTFLIP_BASE_PTS + bonus, {
                 key: "ghostflip",
             });
-        else addTrick("고스트라이드", GHOST_BASE_PTS + bonus, { key: "ghost" });
+        else {
+            const danceBonus = Math.round((A.run * 90 * 0.7) / 10) * 10;
+            const speedBoost = applySpeedBoost(0.5);
+            addTrick("고스트라이드", GHOST_BASE_PTS + danceBonus, {
+                key: "ghost",
+                speedBoost,
+            });
+        }
         sfx.land();
         afterAct();
         rollOffer();
@@ -1143,6 +1149,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
 
     function tickCoast(dt) {
         const A = G.act;
+        if (G.pushChainTimer > 0) {
+            G.pushChainTimer = Math.max(0, G.pushChainTimer - dt);
+            if (G.pushChainTimer === 0) G.pushStreak = 0;
+        }
         if (rideTestPage) G.v = rideTestSpeed;
         else if (!A || A.type !== "bail")
             G.v = Math.max(0, G.v - FRICTION * dt);
@@ -1169,7 +1179,13 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             if (A.type === "push" && !A.boosted && A.el >= A.dur * 0.5) {
                 A.boosted = true;
                 G.awaitingFirstPush = false;
-                G.v = rideTestPage ? rideTestSpeed : Math.min(1, G.v + 0.24);
+                G.pushStreak = G.pushChainTimer > 0 ? G.pushStreak + 1 : 1;
+                G.pushChainTimer = PUSH_CHAIN_WINDOW;
+                const chainBonus = Math.min(
+                    (G.pushStreak - 1) * PUSH_SPEED_BOOST * PUSH_CHAIN_BONUS_RATIO,
+                    PUSH_SPEED_BOOST * PUSH_CHAIN_BONUS_CAP_RATIO,
+                );
+                applySpeedBoost(1 + chainBonus / PUSH_SPEED_BOOST);
                 sfx.push();
             }
             if (A.type === "pivot") {
@@ -1177,28 +1193,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                 G.worldX += PIVOT_SHIFT * (e - A.prevE);
                 A.prevE = e;
             }
-            if (A.type === "hang10") {
-                if (A.phase === "in" && A.el >= A.dur) {
-                    A.phase = "meter";
-                    A.el = 0;
-                    showMeter(A);
-                } else if (A.phase === "meter") {
-                    needleEl.style.left =
-                        "calc(" +
-                        (needleVal(A) * 100).toFixed(2) +
-                        "% - 1.5px)";
-                    if (A.el >= 2600) {
-                        meterEl.hidden = true;
-                        bail("균형 잃음", "Lost balance");
-                    }
-                } else if (A.phase === "hold" && A.el >= A.dur) {
-                    A.phase = "out";
-                    A.el = 0;
-                    A.dur = 220;
-                } else if (A.phase === "out" && A.el >= A.dur) {
-                    endAct();
-                }
-            } else if (A.type === "ghost") {
+            if (A.type === "ghost") {
                 if (A.phase === "off") {
                     A.cyc += dt * 9;
                     if (A.el >= A.dur) {
@@ -2187,7 +2182,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         K,
         LM,
         POS,
-        HANG,
         stepPositions: crossStepPositions,
         posePage,
         newPoses,
@@ -2983,21 +2977,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
     function slotInfo() {
         const A = G.act,
             play = G.mode === "play";
-        if (play && A && A.type === "hang10" && A.phase === "meter")
-            return [0, 1, 2].map(() => ({
-                l: "지금!",
-                e: "Now!",
-                c: "타이밍 timing",
-                now: true,
-                dim: false,
-            }));
         if (play && A && A.type === "ghost" && A.phase === "run") {
             const b = Math.round(A.run * 90);
+            const danceBonus = Math.round((A.run * 90 * 0.7) / 10) * 10;
             return [
                 {
                     l: "올라타기",
                     e: "Hop on",
-                    c: "+" + (GHOST_BASE_PTS + b),
+                    c: "+" + (GHOST_BASE_PTS + danceBonus),
                     dim: false,
                     category: "dancing",
                 },
@@ -3133,7 +3120,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         rollOffer();
         hc = {};
         pops.textContent = "";
-        meterEl.hidden = true;
         ovTitle.hidden = true;
         ovOver.hidden = true;
         stage.classList.remove("setup");
@@ -3148,7 +3134,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         const A = G.act;
         if (!(A && A.type === "bail")) bank();
         else G.combo = freshCombo();
-        meterEl.hidden = true;
         G.act = null;
         G.queue = null;
         G.mode = "over";
@@ -4602,22 +4587,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
             pos: 3,
             trick: "pivot",
         },
-        {
-            id: "hang5",
-            group: "댄싱",
-            label: "행파이브",
-            en: "Hang five",
-            pos: 3,
-            act: { type: "hang5", dur: 900 },
-        },
-        {
-            id: "hang10",
-            group: "댄싱",
-            label: "행텐",
-            en: "Hang ten",
-            pos: 3,
-            hang: true,
-        },
     ];
     let poseSpec = null;
     let poseFacing = 0;
@@ -4636,8 +4605,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                 finish: spec.ghost,
                 need: spec.ghost === "flip" ? 0.9 : 0.65,
             };
-        if (spec.hang)
-            return { type: "hang10", phase: "in", dur: 360, el: 0, prevE: 0 };
         if (spec.trick)
             return {
                 type: spec.trick,
@@ -4699,17 +4666,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
         }
         if (A.el >= A.dur + 480) replayPose();
     }
-    function advanceHang(A) {
-        if (A.phase === "in" && A.el >= A.dur) {
-            A.phase = "hold";
-            A.el = 0;
-            A.dur = 900;
-        } else if (A.phase === "hold" && A.el >= A.dur) {
-            A.phase = "out";
-            A.el = 0;
-            A.dur = 220;
-        } else if (A.phase === "out" && A.el >= A.dur + 400) replayPose();
-    }
     function stepPose(dt) {
         G.v = 0.32;
         G.worldX += G.v * SPEED * dt;
@@ -4738,7 +4694,6 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
                 pathIndex: next,
             };
         } else if (A.type === "ghost") advanceGhost(A, dt);
-        else if (A.type === "hang10") advanceHang(A);
         else if (A.type === "ncbig") {
             // Keep the landing direction and position; clicking the demo replays it.
             A.el = Math.min(A.el, A.dur + 480);
