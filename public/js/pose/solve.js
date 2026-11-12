@@ -4,7 +4,7 @@ export function createSolver(env) {
     const { V, SEG, G_ANK } = env;
     const shoulderDrop = 0.035;
 
-    function ik(socket, foot, pole, pinned = false, kneeBend = 1) {
+    function ik(socket, foot, pole, pinned = false, kneeBend = 1, kneeFlexDegrees = null) {
         const d = V().subVectors(foot, socket),
             len = d.length() || 0.001;
         const reach = Math.min(len, 2 * SEG - 0.002),
@@ -14,8 +14,12 @@ export function createSolver(env) {
         const p = pole.clone().addScaledVector(dir, -pole.dot(dir));
         if (p.lengthSq() < 1e-6) p.set(0, 0, 1);
         p.normalize();
+        const knee = kneeFlexDegrees == null
+            ? mid.addScaledVector(p, h * kneeBend)
+            : socket.clone().add(foot).multiplyScalar(0.5)
+                .addScaledVector(p, (len / 2) * Math.tan((kneeFlexDegrees * Math.PI) / 360));
         return {
-            knee: mid.addScaledVector(p, h * kneeBend),
+            knee,
             ankle: pinned ? foot.clone() : socket.clone().addScaledVector(dir, reach),
         };
     }
@@ -76,6 +80,7 @@ export function createSolver(env) {
             kneePole(o.fa, sA, o.footYawA, o.kneeLiftA, o.kneeRightA),
             o.pinFootA,
             o.kneeBendA,
+            o.kneeFlexA,
         );
         const legB = ik(
             sockB,
@@ -83,6 +88,7 @@ export function createSolver(env) {
             kneePole(o.fb, sB, o.footYawB, o.kneeLiftB, o.kneeRightB),
             o.pinFootB,
             o.kneeBendB,
+            o.kneeFlexB,
         );
         const down = V(0, -1, 0),
             J = {

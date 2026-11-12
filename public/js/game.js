@@ -5,7 +5,7 @@ import {
     standingPositions,
     crossStepPositions,
 } from "./pose/foot-positions.js?v=20261111-cross-step-planted";
-import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
+import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
 
 (function () {
     "use strict";
@@ -259,9 +259,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
             label: "망고",
             zone: "가운데 앞",
             zoneEn: "Front middle",
-            pts: "250",
-            how: "1·2번은 피터팬과 같아요. 3번은 오른다리를 왼다리 오른쪽 허공에 띄워요. 4번은 왼다리를 더 접고 상체를 굽혀 오른발을 지면에 댄 채 바깥쪽 곡선으로 테일 뒤까지 끌어요. 상체는 오른쪽 45°까지 돌아요. 5번은 지면을 따라 왼쪽 바퀴 바깥까지 옮기고 상체를 오른쪽 30°로 돌려요. 6번은 몸을 정면으로 돌리며 왼다리를 더 접었다가 살짝 점프하고, 오른다리를 몸 쪽으로 당겨와요.",
-            howEn: "Steps 1 and 2 match Peter Pan. Step 3 lifts the right foot to the left leg's right. Step 4 bends the left leg further, leans the torso forward, and drags the grounded right foot along an outward curve behind the tail, turning the torso 45° right. Step 5 moves it outside the left wheel and turns the torso back to 30° right. Step 6 faces forward, bends the left leg further, makes a small hop, and pulls the right leg inward.",
+            pts: "280",
+            how: "1·2번은 피터팬과 같아요. 3번은 왼무릎을 15° 굽히고 오른다리를 왼다리 오른쪽 허공에 띄워요. 4번부터 왼무릎을 40°까지 굽히며 상체를 앞으로 기울여요. 오른발은 지면을 따라 바깥쪽 곡선으로 테일 뒤와 왼쪽 바퀴 바깥까지 끌어요. 상체는 오른쪽 45°에서 30°로 돌아요. 6번은 점프하고, 7번은 점프 여파로 몸을 낮추며 오른발을 몸 쪽으로 더 끌어와 주행 방향을 바라봐요.",
+            howEn: "Steps 1 and 2 match Peter Pan. Step 3 bends the left knee 15° and lifts the right foot to the left leg's right. From step 4, the left knee bends to 40° as the torso leans forward. The right foot stays grounded and follows an outward curve behind the tail and outside the left wheel. The torso turns from 45° to 30° right. Step 6 jumps; step 7 absorbs the hop with a dip, pulls the right foot closer, and faces the direction of travel.",
         },
         {
             id: "pirouette",
@@ -406,22 +406,21 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
         step360: {
             label: "360 스텝",
             minV: 0.2,
-            dur: 1360,
+            dur: 1200,
             pts: 240,
             cap: "240",
         },
         step180: {
             label: "180 스텝",
             minV: 0.2,
-            dur: 680,
+            dur: 580,
             pts: 120,
             cap: "120",
             body180: true,
         },
         ghost: { label: "고스트라이드", minV: 0.3, cap: GHOST_BASE_PTS + "+" },
-        // 기존 속도: dur 1200ms
-        pan: { label: "피터팬", minV: 0.2, dur: 1400, pts: 250, cap: "250" },
-        mango: { label: "망고", minV: 0.2, dur: 2450, pts: 250, cap: "250" },
+        pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
+        mango: { label: "망고", minV: 0.2, dur: 1800, pts: 280, cap: "280" },
         pirouette: {
             label: "피루엣",
             minV: 0.25,
@@ -947,6 +946,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
     }
     function endAct() {
         const A = G.act;
+        if (A.type === "mango") G.pos = 2;
         const landingPose = newPoses && TRICKS[A.type]?.pts ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") {
