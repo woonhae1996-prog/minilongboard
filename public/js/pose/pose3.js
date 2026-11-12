@@ -1,7 +1,7 @@
 import { sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js?v=20261111-peter-pan-duration-1200";
-import { createTricks } from "./tricks.js?v=20261111-shuv-fixed-shoulders";
+import { createSolver } from "./solve.js?v=20261112-mango-score-duration";
+import { createTricks } from "./tricks.js?v=20261112-mango-score-duration";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -85,6 +85,7 @@ export function createPose3(env, getStance = stanceParameters) {
 
     function solvePose(ctx) {
         const A = ctx.A,
+            t = ctx.t,
             shake = ctx.shake,
             idleSway = ctx.idleSway,
             c0 = ctx.c0,
@@ -141,8 +142,8 @@ export function createPose3(env, getStance = stanceParameters) {
         // Preserve each action's leg identity through crossing and rotation.
         const keepNoComplyLegs = newPoses && A && A.type === "nocomply";
         const turnStep = A && (A.type === "step180" || A.type === "step360");
-        const footStep = turnStep || (A && A.type === "pan");
-        if (A && A.type === "pan" && ctx.panSocketSign != null) {
+        const footStep = turnStep || (A && (A.type === "pan" || A.type === "mango"));
+        if (A && (A.type === "pan" || A.type === "mango") && ctx.panSocketSign != null) {
             sockSign = ctx.panSocketSign * ctx.side;
         } else if (crossFeet || (!A && env.G.crossStepStance)) {
             sockSign = -ctx.side;
@@ -153,7 +154,7 @@ export function createPose3(env, getStance = stanceParameters) {
             A && A.type === "push"
                 ? (ctx.pushSupportA ? fa.x : fb.x) - Math.abs(Xw(TAIL + L) - Xw(TAIL)) * 0.08
                 : (fa.x + fb.x) / 2 + lean * 0.15);
-        const hipY = Y_ANK + 0.78 + hop + shake - hipDrop;
+        const hipY = ctx.supportHipY ?? (Y_ANK + 0.78 + hop + shake - hipDrop);
         // Standing feet stay perpendicular to the board; 45° is step-only.
         let J = solve({
             hip: { x: hipX, y: hipY, z: hipZ },
@@ -172,6 +173,11 @@ export function createPose3(env, getStance = stanceParameters) {
             kneeOutward: footStep ? 0.18 : undefined,
             kneeBendA: ctx.kneeBendA,
             kneeBendB: ctx.kneeBendB,
+            kneeFlexA: ctx.kneeFlexA,
+            kneeFlexB: ctx.kneeFlexB,
+            kneeRightA: ctx.kneeRightA,
+            kneeRightB: ctx.kneeRightB,
+            stanceSide: ctx.side,
             // Shoe heading stays fixed independently of the knee bend direction.
             footYawA: turnStep ? null : footYawA,
             footYawB: turnStep ? null : footYawB,
@@ -253,7 +259,8 @@ export function createPose3(env, getStance = stanceParameters) {
         };
         if (A) {
             applyActPose(ctx);
-            if (TRICKS[A.type] && TRICKS[A.type].pts && t > 0.9) {
+            // Mango authors its own landing foot positions during step 6.
+            if (TRICKS[A.type] && TRICKS[A.type].pts && t > 0.9 && A.type !== "mango") {
                 const settle = ease(clamp((t - 0.9) / 0.1, 0, 1));
                 const currentA = ctx.ga || {
                     x: Xw(TAIL + ctx.pa * L),

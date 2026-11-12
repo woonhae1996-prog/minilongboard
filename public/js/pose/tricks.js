@@ -454,7 +454,7 @@ export function createTricks(env) {
                 const dx = rightLandingX - rightStartX;
                 const dz = -lateral;
                 const chord = Math.hypot(dx, dz);
-                const radius = Math.max(LM * 0.24, chord / 2 + 0.001);
+                const radius = Math.max(LM * 0.19, chord / 2 + 0.001);
                 const offset = Math.sqrt(radius * radius - chord * chord / 4);
                 const centerX = (rightStartX + rightLandingX) / 2 - dz / chord * offset;
                 const centerZ = dz / 2 + dx / chord * offset;
@@ -473,7 +473,7 @@ export function createTricks(env) {
                 rightFoot.y += arc * 0.24;
                 const extend = ease(clamp(u / 0.25, 0, 1)) *
                     (1 - ease(clamp((u - 0.8) / 0.2, 0, 1)));
-                rightKneeBend = 1 - 0.75 * extend;
+                rightKneeBend = 1 - 0.55 * extend;
                 ctx.supportHipX = lerp((rightFoot.x + leftFoot.x) / 2, leftFoot.x, arc * 0.8);
                 // Cross only after the extended leg has cleared the support leg.
                 const cross = ease(clamp((u - 0.72) / 0.28, 0, 1));
@@ -528,19 +528,336 @@ export function createTricks(env) {
         // Let the pelvis unwind with the final turn instead of keeping the
         // thigh sockets facing forward beneath the sideways torso and shoes.
         const yaw = forwardYaw + bodyTurn - (phase === 3 ? Math.PI / 2 * u : 0);
-        const hipDrop = 0.035 * Math.sin(Math.PI * t) ** 2;
+        const gatherCrouch = phase === 0 ? 0.06 * Math.sin(Math.PI * u) : 0;
+        const hipDrop = 0.035 * Math.sin(Math.PI * t) ** 2 + gatherCrouch;
         const arms = 0.7;
         const lean = 0;
         ctx.footYawA = rightIsA ? rightYaw : leftYaw;
         ctx.footYawB = rightIsA ? leftYaw : rightYaw;
         ctx.kneeBendA = rightIsA ? rightKneeBend : 1;
         ctx.kneeBendB = rightIsA ? 1 : rightKneeBend;
+        // Step 2 plants the left leg as the axis. Tip that knee to the right.
+        ctx.kneeRightA = phase === 1 && !rightIsA;
+        ctx.kneeRightB = phase === 1 && rightIsA;
         const torsoRight = phase === 2 ? Math.PI / 4
             : phase === 3 ? Math.PI / 4 * (1 + u) : 0;
         ctx.shoulderYaw = forwardYaw + bodyTurn - torsoRight;
         Object.assign(ctx, {
             pa, pb, la: 0, lb: 0, za: 0, zb: 0, hop: 0, lean, arms, yaw, hipDrop, hipZ,
             ga, gb, fall, alpha, runMix, cyc,
+        });
+    }
+
+    function posePanPrefix(ctx, progress, phaseCount) {
+        // Reuse Peter Pan's motion for the requested leading phases.
+        const partial = { ...ctx, t: progress * (phaseCount / 4) };
+        posePan(partial);
+        delete partial.t;
+        Object.assign(ctx, partial);
+    }
+
+    function mangoArmPose(t) {
+        if (t < 0.15) return 0.7;
+        if (t < 0.3) return lerp(0.55, 1.05, ease(clamp((t - 0.15) / 0.15, 0, 1)));
+        if (t < 0.55) return 1.05;
+        if (t < 0.75) return 1.0;
+        if (t < 0.85) return lerp(1.0, 0.9, ease(clamp((t - 0.75) / 0.1, 0, 1)));
+        return lerp(0.9, 0.55, ease(clamp((t - 0.85) / 0.15, 0, 1)));
+    }
+
+    function mangoCopiedBodyLegAngles(t) {
+        let leftKneeFlex = 0;
+        let rightKneeBend = 0.75;
+        let torsoLean = 0;
+        let torsoYaw = Math.PI / 2;
+        if (t < 0.3) {
+            const u = ease(clamp((t - 0.15) / 0.15, 0, 1));
+            leftKneeFlex = 30 * u;
+            rightKneeBend = 0.7;
+            torsoLean = (15 * Math.PI / 180) * u;
+        } else if (t < 0.55) {
+            const u = ease(clamp((t - 0.3) / 0.25, 0, 1));
+            leftKneeFlex = lerp(30, 85, u);
+            rightKneeBend = lerp(0.7, 0.9, u);
+            torsoLean = lerp(15, 38, u) * Math.PI / 180;
+            torsoYaw = lerp(Math.PI / 2, Math.PI / 4, u);
+        } else if (t < 0.75) {
+            const u = ease(clamp((t - 0.55) / 0.2, 0, 1));
+            leftKneeFlex = 85;
+            rightKneeBend = 0.9;
+            torsoLean = 0.62;
+            torsoYaw = lerp(Math.PI / 4, Math.PI / 6, u);
+        } else if (t < 0.85) {
+            const u = ease(clamp((t - 0.75) / 0.1, 0, 1));
+            leftKneeFlex = lerp(85, 65, u);
+            rightKneeBend = 0.9;
+            torsoLean = lerp(0.62, 0.42, u);
+            torsoYaw = lerp(Math.PI / 6, Math.PI / 2, u);
+        } else {
+            const u = ease(clamp((t - 0.85) / 0.15, 0, 1));
+            leftKneeFlex = lerp(65, 0, u);
+            rightKneeBend = lerp(0.9, 1, u);
+            torsoLean = lerp(0.42, 0, u);
+        }
+        return { leftKneeFlex, rightKneeBend, torsoLean, torsoYaw };
+    }
+
+    function poseMango(ctx) {
+        const { t: actionT, pa, pb, shake } = ctx;
+        // Keep steps 1–2, 5–9 at their original speeds while shortening steps 3–4.
+        const elapsed = actionT * 2450;
+        const baseDuration = 2100;
+        const step2EndMs = (2 / 7) * baseDuration;
+        const step3DurationMs = (1 / 7) * baseDuration * 0.75;
+        const step3EndMs = step2EndMs + step3DurationMs;
+        const step4DurationMs = (2 / 7) * baseDuration * 0.75;
+        const step4EndMs = step3EndMs + step4DurationMs;
+        const step6DurationMs = ((5.85 - 5) / 7) * baseDuration;
+        const step7DurationMs = ((6.6 - 5.85) / 7) * baseDuration + 90;
+        const step8DurationMs = ((7 - 6.6) / 7) * baseDuration;
+        const step5EndMs = step4EndMs + step6DurationMs;
+        const step6EndMs = step5EndMs + step7DurationMs;
+        const motionEndMs = step6EndMs + step8DurationMs;
+        let t;
+        if (elapsed < step2EndMs) {
+            t = elapsed / baseDuration;
+        } else if (elapsed < step3EndMs) {
+            t = 2 / 7 + ((elapsed - step2EndMs) / step3DurationMs) * (1 / 7);
+        } else if (elapsed < step4EndMs) {
+            t = 3 / 7 + ((elapsed - step3EndMs) / step4DurationMs) * (2 / 7);
+        } else if (elapsed < step5EndMs) {
+            t = 5 / 7 + ((elapsed - step4EndMs) / step6DurationMs) * (0.85 / 7);
+        } else if (elapsed < step6EndMs) {
+            t = 5.85 / 7 + ((elapsed - step5EndMs) / step7DurationMs) * (0.75 / 7);
+        } else if (elapsed < motionEndMs) {
+            t = 6.6 / 7 + ((elapsed - step6EndMs) / step8DurationMs) * (0.4 / 7);
+        } else {
+            t = 1;
+        }
+        if (t < 2 / 7) {
+            // Mango steps 1 and 2 match Peter Pan's first two phases.
+            posePanPrefix(ctx, t / (2 / 7), 2);
+            ctx.arms = mangoArmPose(t);
+            return;
+        }
+
+        // Steps 3 through 6 continue from Peter Pan's second-phase endpoint.
+        const rightIsA = pa < pb;
+        const rightStart = rightIsA ? pa : pb;
+        const lateral = 0.065 * LM;
+        const leftX = Xw(TAIL + (rightStart + 0.1) * L);
+        const rightX = Xw(TAIL + rightStart * L) + lateral;
+        const rightSweepRadius = 0.22;
+        const leftFoot = { x: leftX, y: Y_ANK + shake, z: lateral };
+        const rightFoot = { x: leftX, y: Y_ANK + shake + 0.22, z: lateral + 0.29 };
+        let rightKneeBend = 0.72;
+        let leftKneeBend = 1;
+        let leftKneeFlex = 15;
+        let torsoYaw = Math.PI / 2;
+        let torsoLean = 0;
+        let bodyYaw = Math.PI / 2;
+        const cruiseYaw = Math.PI / 2;
+        let recoveryFootYaw = cruiseYaw;
+        let arms = mangoArmPose(t);
+        const step6Start = 5.85 / 7;
+        const step7Start = 6.6 / 7;
+        const smooth = (q) => q * q * q * (q * (q * 6 - 15) + 10);
+        // Lift the grounded foot through the step 4→5 handoff so its sole
+        // clears the ground briefly without a vertical snap.
+        const liftWindow = 0.04;
+        const liftProgress = clamp((t - (5 / 7 - liftWindow)) / (2 * liftWindow), 0, 1);
+        const groundClearance = 0.035 * Math.sin(Math.PI * liftProgress);
+
+        if (t < 3 / 7) {
+            // Step 3: anchor the left leg, bend the right, and swing it
+            // clockwise to the left leg's right side, off the deck.
+            const u = ease(clamp((t - 2 / 7) * 7, 0, 1));
+            const dx = rightX - leftX;
+            const dz = -2 * lateral;
+            const radiusStart = Math.hypot(dx, dz);
+            const radius = lerp(radiusStart, rightSweepRadius, u);
+            const startAngle = Math.atan2(dz, dx);
+            let turn = Math.PI / 2 - startAngle;
+            if (turn >= 0) turn -= 2 * Math.PI;
+            const angle = startAngle + turn * u;
+            rightFoot.x = leftX + Math.cos(angle) * radius;
+            rightFoot.z = leftFoot.z + Math.sin(angle) * radius;
+            rightFoot.y = Y_ANK + shake + 0.22 * Math.sin((Math.PI * u) / 2);
+            rightKneeBend = lerp(1, 0.72, u);
+        } else if (t < 5 / 7) {
+            // Step 4: bend the planted left leg further, touch down, then
+            // drag the right foot along the ground behind the tail.
+            const u = smooth(clamp((t - 3 / 7) * 3.5, 0, 1));
+            const touchDown = smooth(clamp(u / 0.2, 0, 1));
+            const drag = smooth(clamp((u - 0.2) / 0.8, 0, 1));
+            const rightTargetX = Xw(TAIL - 22);
+            const startZ = lateral + rightSweepRadius;
+            const controlX = lerp(leftX, rightTargetX, 0.55);
+            const controlZ = 0.62;
+            const remain = 1 - drag;
+            rightFoot.x = remain * remain * leftX + 2 * remain * drag * controlX + drag * drag * rightTargetX;
+            rightFoot.z = remain * remain * startZ + 2 * remain * drag * controlZ + drag * drag * 0.26;
+            rightFoot.y = lerp(Y_ANK + shake + 0.22, G_ANK + shake, touchDown) + groundClearance;
+            leftKneeBend = lerp(1, 0.45, u);
+            leftKneeFlex = lerp(15, 40, u);
+            rightKneeBend = lerp(0.72, 0.9, u);
+            torsoYaw = lerp(Math.PI / 2, Math.PI / 4, u);
+            torsoLean = 0.24 * u;
+        } else if (t < step6Start) {
+            // Step 5: keep the right foot grounded and arc around the tail
+            // toward the outside of the left rear wheel.
+            const u = smooth(clamp((t - 5 / 7) / (step6Start - 5 / 7), 0, 1));
+            const startX = Xw(TAIL - 22);
+            const targetX = Xw(TAIL + L / 2 - TRUCK);
+            // Reuse Mango 2's grounded push sweep: pass behind the tail before
+            // curving back toward the rear wheel.
+            const controlX = startX - 0.08;
+            const remain = 1 - u;
+            rightFoot.x = remain * remain * startX + 2 * remain * u * controlX + u * u * targetX;
+            rightFoot.z = remain * remain * 0.26 + 2 * remain * u * -0.02 + u * u * -0.3;
+            rightFoot.y = G_ANK + shake + groundClearance;
+            leftKneeBend = 0.45;
+            leftKneeFlex = 40;
+            rightKneeBend = 0.9;
+            torsoYaw = lerp(Math.PI / 4, Math.PI / 6, u);
+            torsoLean = 0.24;
+        } else if (t < step7Start) {
+            // Step 6: preload, hop, and land with crossed feet.
+            const u = smooth(clamp((t - step6Start) / (step7Start - step6Start), 0, 1));
+            const jumpProgress = clamp((u - 0.2) / 0.75, 0, 1);
+            const jump = 0.22 * Math.sin(Math.PI * jumpProgress);
+            const preJumpDown = 0.065 * smooth(clamp(u / 0.2, 0, 1)) * (1 - smooth(jumpProgress));
+            const landingProgress = smooth(clamp((jumpProgress - 0.45) / 0.55, 0, 1));
+            const pull = smooth(jumpProgress);
+            const faceForward = smooth(clamp(u / 0.55, 0, 1));
+            const rearWheelX = Xw(TAIL + L / 2 - TRUCK);
+            rightFoot.x = lerp(rearWheelX, rearWheelX + 0.1, pull);
+            rightFoot.z = lerp(-0.3, -0.12, pull);
+            const crossTargetX = clamp(leftFoot.x - 0.1, Xw(TAIL + 0.1 * L), Xw(TAIL + 0.9 * L));
+            // Keep the crossed landing foot's whole shoe inside the deck width.
+            rightFoot.x = lerp(rightFoot.x, crossTargetX, landingProgress);
+            rightFoot.z = lerp(rightFoot.z, -0.045, landingProgress);
+            leftFoot.z = lerp(lateral, 0.04, landingProgress);
+            rightFoot.y = lerp(G_ANK, Y_ANK, landingProgress) + shake + jump;
+            leftFoot.y = Y_ANK + shake + jump;
+            leftKneeBend = lerp(0.45, 0.3, smooth(clamp(u / 0.28, 0, 1)));
+            leftKneeFlex = 40;
+            rightKneeBend = 0.9;
+            torsoYaw = lerp(Math.PI / 6, 0, faceForward);
+            bodyYaw = lerp(Math.PI / 2, 0, faceForward);
+            torsoLean = 0.24 * (1 - pull);
+            ctx.hipDrop = preJumpDown + 0.045 * landingProgress;
+            ctx.hop = jump;
+        } else {
+            // Step 7: absorb the hop and pull the right foot closer to the body.
+            const u = smooth(clamp((t - step7Start) / (1 - step7Start), 0, 1));
+            const crossTargetX = clamp(leftFoot.x - 0.1, Xw(TAIL + 0.1 * L), Xw(TAIL + 0.9 * L));
+            const closeTargetX = clamp(leftFoot.x - 0.04, Xw(TAIL + 0.1 * L), Xw(TAIL + 0.9 * L));
+            rightFoot.x = lerp(crossTargetX, closeTargetX, u);
+            // Keep the right shoe left of the left foot while accounting for
+            // its 0.066 m half-width inside the deck's 0.24 m width.
+            rightFoot.z = -0.045;
+            leftFoot.z = 0.04;
+            rightFoot.y = Y_ANK + shake;
+            leftFoot.y = Y_ANK + shake;
+            leftKneeFlex = 40;
+            rightKneeBend = 0.9;
+            torsoYaw = lerp(0, Math.PI / 2, u);
+            bodyYaw = lerp(0, Math.PI / 2, u);
+            torsoLean = 0;
+            ctx.hipDrop = 0.045 * (1 - u);
+            ctx.hop = 0;
+        }
+
+        const recoveryStart = motionEndMs / 2450;
+        if (actionT > recoveryStart) {
+            const recovery = smooth((actionT - recoveryStart) / (1 - recoveryStart));
+            const leftAtStep7 = leftFoot.x;
+            const rightAtStep7 = rightFoot.x;
+            const leftCruiseX = Xw(TAIL + POS[2][1] * L);
+            const rightCruiseX = Xw(TAIL + POS[2][0] * L);
+            if (recovery < 0.5) {
+                // Step 8: place the left foot at the middle-upper front slot first.
+                const u = smooth(recovery * 2);
+                leftFoot.x = lerp(leftAtStep7, leftCruiseX, u);
+                leftFoot.z = lerp(0.04, 0, u);
+                leftFoot.y = Y_ANK + shake + 0.07 * Math.sin(Math.PI * u);
+                rightFoot.x = rightAtStep7;
+                leftKneeFlex = null;
+                rightKneeBend = 0.72;
+                ctx.hipDrop = 0;
+                recoveryFootYaw = lerp(cruiseYaw, 0, u);
+                torsoYaw = recoveryFootYaw;
+                bodyYaw = recoveryFootYaw;
+            } else {
+                // Step 9: keep the left foot planted, then place the right foot.
+                const u = smooth((recovery - 0.5) * 2);
+                leftFoot.x = leftCruiseX;
+                leftFoot.z = 0;
+                leftFoot.y = Y_ANK + shake;
+                rightFoot.x = lerp(rightAtStep7, rightCruiseX, u);
+                rightFoot.z = lerp(-0.045, 0, u);
+                rightFoot.y = Y_ANK + shake + 0.07 * Math.sin(Math.PI * u);
+                leftKneeFlex = null;
+                rightKneeBend = lerp(0.72, 1, u);
+                ctx.hipDrop = 0;
+                recoveryFootYaw = 0;
+                torsoYaw = 0;
+                bodyYaw = 0;
+                // Finish on the same upright guard as Peter Pan's final pose.
+                arms = lerp(0.55, 0.7, u);
+            }
+            torsoLean = 0;
+            ctx.hop = 0;
+        }
+        if (actionT <= recoveryStart && t >= 2 / 7) {
+            const angleProgress = 0.15 + ((t - 2 / 7) / (5 / 7)) * 0.85;
+            const angles = mangoCopiedBodyLegAngles(angleProgress);
+            leftKneeFlex = angles.leftKneeFlex;
+            rightKneeBend = angles.rightKneeBend;
+            torsoLean = angles.torsoLean;
+            torsoYaw = angles.torsoYaw;
+            if (t >= step7Start) {
+                const step7Progress = smooth(clamp((t - step7Start) / (1 - step7Start), 0, 1));
+                rightKneeBend = lerp(rightKneeBend, 0.72, step7Progress);
+            }
+        }
+        const cruiseCenterX = Xw(TAIL + ((POS[2][0] + POS[2][1]) / 2) * L);
+        if (actionT <= recoveryStart && t >= step7Start) {
+            const step7Progress = smooth(clamp((t - step7Start) / (1 - step7Start), 0, 1));
+            const naturalHipX = (leftFoot.x + rightFoot.x) / 2 + torsoLean * 0.15;
+            ctx.supportHipX = lerp(naturalHipX, cruiseCenterX, step7Progress);
+            ctx.hipDrop = 0.045 * (1 - step7Progress);
+        } else if (actionT > recoveryStart) {
+            ctx.supportHipX = cruiseCenterX;
+            ctx.hipDrop = 0;
+        }
+
+        const rightYaw = recoveryFootYaw;
+        const leftYaw = recoveryFootYaw;
+        const ga = rightIsA ? rightFoot : leftFoot;
+        const gb = rightIsA ? leftFoot : rightFoot;
+        ctx.footYawA = rightIsA ? rightYaw : leftYaw;
+        ctx.footYawB = rightIsA ? leftYaw : rightYaw;
+        ctx.kneeBendA = rightIsA ? rightKneeBend : leftKneeBend;
+        ctx.kneeBendB = rightIsA ? leftKneeBend : rightKneeBend;
+        ctx.kneeFlexA = rightIsA ? null : leftKneeFlex;
+        ctx.kneeFlexB = rightIsA ? leftKneeFlex : null;
+        ctx.kneeRightA = actionT > recoveryStart ? false : !rightIsA;
+        ctx.kneeRightB = actionT > recoveryStart ? false : rightIsA;
+        ctx.shoulderYaw = torsoYaw;
+        ctx.panSocketSign = rightIsA ? -1 : 1;
+        Object.assign(ctx, {
+            ga,
+            gb,
+            arms,
+            lean: torsoLean,
+            yaw: bodyYaw,
+            hop: ctx.hop ?? 0,
+            la: 0,
+            lb: 0,
+            za: 0,
+            zb: 0,
         });
     }
 
@@ -974,6 +1291,7 @@ export function createTricks(env) {
         heelflip: poseFlip,
         nocomply: poseNocomply,
         pan: posePan,
+        mango: poseMango,
         bigspin: poseBigspin,
         biggerspin: poseBigspin,
         ncbig: poseNcBig,

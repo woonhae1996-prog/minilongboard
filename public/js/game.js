@@ -5,7 +5,7 @@ import {
     standingPositions,
     crossStepPositions,
 } from "./pose/foot-positions.js?v=20261111-cross-step-planted";
-import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
+import { createPose3 } from "./pose/pose3.js?v=20261112-mango-score-duration";
 
 (function () {
     "use strict";
@@ -17,6 +17,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
     const NEW_POSES = true;
     const newPoses = posePage || NEW_POSES;
     const cv = $("#cv");
+
     const reduce = !!(
         window.matchMedia &&
         matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -82,6 +83,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
         고스트라이드: "Ghost ride",
         "고스트라이드 킥플립": "Ghost ride kickflip",
         피터팬: "Peter Pan",
+        망고: "Mango",
         피루엣: "Pirouette",
         "바디 배리얼": "Body varial",
         행파이브: "Hang five",
@@ -253,6 +255,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
             howEn: "Gather the left foot at the right toes, sweep the right foot to the opposite side, then place the left foot at upper middle.",
         },
         {
+            id: "mango",
+            label: "망고",
+            zone: "가운데 앞",
+            zoneEn: "Front middle",
+            pts: "280",
+            how: "1·2번은 피터팬과 같아요. 3번은 왼무릎을 15° 굽히고 오른다리를 왼다리 오른쪽 허공에 띄워요. 4번부터 왼무릎을 40°까지 굽히며 상체를 앞으로 기울여요. 오른발은 지면을 따라 바깥쪽 곡선으로 테일 뒤와 왼쪽 바퀴 바깥까지 끌어요. 상체는 오른쪽 45°에서 30°로 돌아요. 6번은 점프하고, 7번은 점프 여파로 몸을 낮추며 오른발을 몸 쪽으로 더 끌어와 주행 방향을 바라봐요.",
+            howEn: "Steps 1 and 2 match Peter Pan. Step 3 bends the left knee 15° and lifts the right foot to the left leg's right. From step 4, the left knee bends to 40° as the torso leans forward. The right foot stays grounded and follows an outward curve behind the tail and outside the left wheel. The torso turns from 45° to 30° right. Step 6 jumps; step 7 absorbs the hop with a dip, pulls the right foot closer, and faces the direction of travel.",
+        },
+        {
             id: "pirouette",
             label: "피루엣",
             zone: "가운데 앞",
@@ -395,21 +406,21 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
         step360: {
             label: "360 스텝",
             minV: 0.2,
-            dur: 1360,
+            dur: 1200,
             pts: 240,
             cap: "240",
         },
         step180: {
             label: "180 스텝",
             minV: 0.2,
-            dur: 680,
+            dur: 580,
             pts: 120,
             cap: "120",
             body180: true,
         },
         ghost: { label: "고스트라이드", minV: 0.3, cap: GHOST_BASE_PTS + "+" },
-        // 기존 속도: dur 1000ms
         pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 250, cap: "250" },
+        mango: { label: "망고", minV: 0.2, dur: 1800, pts: 280, cap: "280" },
         pirouette: {
             label: "피루엣",
             minV: 0.25,
@@ -430,7 +441,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
     const SLOTS = [
         ["kickflip", "heelflip", "nocomply", "popshuv", "frontpop", "varialkickflip", "hardflip"],
         [null, null, "ghost", "step180", "step360"],
-        ["pan", "pirouette", "varial"],
+        ["pan", "pirouette", "varial", "mango"],
         ["pivot", "shuv", "ncbig", "bigspin", "biggerspin"],
     ];
     // 한 칸에 트릭이 3개보다 많으면 그중 3개만 보여 주고, 트릭이 끝나면 다시 뽑는다.
@@ -935,6 +946,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
     }
     function endAct() {
         const A = G.act;
+        if (A.type === "mango") G.pos = 2;
         const landingPose = newPoses && TRICKS[A.type]?.pts ? pose3(0) : null;
         // Pushing returns to the same stance; walking/tricks may change it.
         if (A.type !== "push") {
@@ -972,9 +984,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
                     (foot) => 0.5 + (foot.x - landingPose.B.px) / LM,
                 );
                 const [rear, front] = POS[G.pos];
-                G.startFeet = G.startFeet[0] < G.startFeet[1]
-                    ? [rear, front]
-                    : [front, rear];
+                G.startFeet =
+                    G.startFeet[0] < G.startFeet[1]
+                        ? [rear, front]
+                        : [front, rear];
                 if (A.type === "pan") {
                     const baseYaw = G.facing ? Math.PI : 0;
                     G.panFootYawA = landingPose.footYawA - baseYaw;
@@ -1006,7 +1019,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
         G.landEl = A.el - A.dur;
         const bonus = Math.round(A.run * 90);
         if (A.phase === "flip")
-            addTrick("고스트라이드 킥플립", GHOSTFLIP_BASE_PTS + bonus, { key: "ghostflip" });
+            addTrick("고스트라이드 킥플립", GHOSTFLIP_BASE_PTS + bonus, {
+                key: "ghostflip",
+            });
         else addTrick("고스트라이드", GHOST_BASE_PTS + bonus, { key: "ghost" });
         sfx.land();
         afterAct();
@@ -2950,11 +2965,19 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
         if (play && A && A.type === "ghost" && A.phase === "run") {
             const b = Math.round(A.run * 90);
             return [
-                { l: "올라타기", e: "Hop on", c: "+" + (GHOST_BASE_PTS + b), dim: false },
+                {
+                    l: "올라타기",
+                    e: "Hop on",
+                    c: "+" + (GHOST_BASE_PTS + b),
+                    dim: false,
+                },
                 {
                     l: "킥플립 캐치",
                     e: "Kickflip catch",
-                    c: A.run < 0.8 ? "더 달려 keep running" : "+" + (GHOSTFLIP_BASE_PTS + b),
+                    c:
+                        A.run < 0.8
+                            ? "더 달려 keep running"
+                            : "+" + (GHOSTFLIP_BASE_PTS + b),
                     dim: A.run < 0.8,
                 },
                 {
@@ -4511,6 +4534,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261111-shuv-fixed-shoulders";
             en: "Peter Pan",
             pos: 2,
             trick: "pan",
+        },
+        {
+            id: "mango",
+            group: "트릭",
+            label: "망고",
+            en: "Mango",
+            pos: 2,
+            trick: "mango",
         },
         {
             id: "pirouette",
