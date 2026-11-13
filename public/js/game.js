@@ -4,7 +4,7 @@ import {
     standingPositions,
     crossStepPositions,
 } from "./pose/foot-positions.js?v=20261112-no-hang-poses";
-import { createPose3 } from "./pose/pose3.js?v=20261113-chop-return-hop";
+import { createPose3 } from "./pose/pose3.js?v=20261113-deck-lean-scale";
 
 (function () {
     "use strict";
@@ -2860,14 +2860,17 @@ import { createPose3 } from "./pose/pose3.js?v=20261113-chop-return-hop";
         const qs = new THREE.Quaternion().setFromRotationMatrix(
             new THREE.Matrix4().makeBasis(Xf, UP(), Zf),
         );
+        const deckAxis = V(1, 0, 0);
         const footA =
             P.footYawA == null
-                ? Zf
+                ? Zf.clone()
                 : V(Math.sin(P.footYawA), 0, Math.cos(P.footYawA));
         const footB =
             P.footYawB == null
-                ? Zf
+                ? Zf.clone()
                 : V(Math.sin(P.footYawB), 0, Math.cos(P.footYawB));
+        if (P.deckRollA) footA.applyAxisAngle(deckAxis, P.deckRollA);
+        if (P.deckRollB) footB.applyAxisAngle(deckAxis, P.deckRollB);
         r.shoeA.position
             .copy(J.aA)
             .add(V(0, -0.035, 0))
@@ -2875,6 +2878,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261113-chop-return-hop";
         r.shoeA.quaternion.copy(qs);
         if (P.footYawA != null)
             r.shoeA.quaternion.setFromAxisAngle(UP(), P.footYawA);
+        if (P.deckRollA)
+            r.shoeA.quaternion.premultiply(
+                new THREE.Quaternion().setFromAxisAngle(deckAxis, P.deckRollA),
+            );
         tiltRunningShoe(r.shoeA, P.footPitchA || 0);
         r.shoeB.position
             .copy(J.aB)
@@ -2883,6 +2890,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261113-chop-return-hop";
         r.shoeB.quaternion.copy(qs);
         if (P.footYawB != null)
             r.shoeB.quaternion.setFromAxisAngle(UP(), P.footYawB);
+        if (P.deckRollB)
+            r.shoeB.quaternion.premultiply(
+                new THREE.Quaternion().setFromAxisAngle(deckAxis, P.deckRollB),
+            );
         tiltRunningShoe(r.shoeB, P.footPitchB || 0);
     }
 
