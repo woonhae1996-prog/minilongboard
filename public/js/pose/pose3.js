@@ -1,7 +1,10 @@
 import { sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
 import { createSolver } from "./solve.js?v=20261113-chop-refine";
-import { createTricks } from "./tricks.js?v=20261113-chop-return-hop";
+import { createTricks } from "./tricks.js?v=20261113-dance-deck-lean";
+
+// Change this one value to tune visual deck lean across every dancing step.
+export const DECK_LEAN_SCALE = 1.25;
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -13,6 +16,29 @@ export function runningFootPitch(cycle, mix) {
     return {
         a: sampleRunFoot(cycle).pitch * mix,
         b: sampleRunFoot(cycle + Math.PI).pitch * mix,
+    };
+}
+
+// Targets are deck-roll degrees: positive for heel-side down, negative for toe-side.
+// Missing intervals start and end level; smoothstep keeps each transition gentle.
+export function sampleDeckLean(t, targets = []) {
+    let fromAt = 0, fromHeel = 0;
+    for (const { at, heel } of [...targets, { at: 1, heel: 0 }]) {
+        if (t <= at) {
+            const u = Math.max(0, Math.min(1, (t - fromAt) / (at - fromAt || 1)));
+            const smooth = u * u * (3 - 2 * u);
+            return fromHeel + (heel - fromHeel) * smooth;
+        }
+        fromAt = at;
+        fromHeel = heel;
+    }
+    return 0;
+}
+
+export function deckSurfaceOffset(roll, localZ, centerY) {
+    return {
+        y: centerY * (Math.cos(roll) - 1) - localZ * Math.sin(roll),
+        z: localZ * Math.cos(roll) + centerY * Math.sin(roll),
     };
 }
 
@@ -31,6 +57,10 @@ export function createPose3(env, getStance = stanceParameters) {
             const side = ctx.side;
             ctx.side = 1;
             pose(ctx);
+            // A negative X roll lowers regular heel-side (-Z); mirroring swaps rails.
+            if (ctx.deckLean)
+                ctx.B.roll -= sampleDeckLean(ctx.t, ctx.deckLean)
+                    * DECK_LEAN_SCALE * Math.PI / 180;
             ctx.side = side;
             const sign = ctx.stance.rotationSign;
             ctx.yaw *= sign;
@@ -46,6 +76,10 @@ export function createPose3(env, getStance = stanceParameters) {
             ctx.B.roll *= side;
             ctx.B.pz *= side;
             ctx.B.lz *= side;
+            if (ctx.deckLean) {
+                if (ctx.deckContactA) followDeckSurface(ctx, "a");
+                if (ctx.deckContactB) followDeckSurface(ctx, "b");
+            }
         }
         const A = ctx.A,
             t = ctx.t;
@@ -81,6 +115,22 @@ export function createPose3(env, getStance = stanceParameters) {
             }
         }
         ctx.hipDrop = hipDrop;
+    }
+
+    function followDeckSurface(ctx, foot) {
+        const roll = ctx.B.roll;
+        const zKey = `z${foot}`, liftKey = `l${foot}`;
+        const goal = ctx[`g${foot}`];
+        const localZ = (goal ? goal.z : ctx[zKey]) - ctx.B.pz;
+        const deckCenterY = -ctx.B.ly;
+        const surface = deckSurfaceOffset(roll, localZ, deckCenterY);
+        if (goal) {
+            goal.z = ctx.B.pz + surface.z;
+            goal.y += ctx.B.py - ctx.shake + surface.y;
+        } else {
+            ctx[zKey] = ctx.B.pz + surface.z;
+            ctx[liftKey] += ctx.B.py - ctx.shake + surface.y;
+        }
     }
 
     function solvePose(ctx) {
@@ -208,6 +258,8 @@ export function createPose3(env, getStance = stanceParameters) {
         }
         if (ctx.footPitchA != null) footPitch.a = ctx.footPitchA;
         return { J, B, alpha, footYawA, footYawB,
+            deckRollA: ctx.deckContactA ? B.roll : 0,
+            deckRollB: ctx.deckContactB ? B.roll : 0,
             pelvisYaw: A && A.type === "chop" ? bodyYaw : null,
             footPitchA: footPitch.a, footPitchB: footPitch.b };
     }

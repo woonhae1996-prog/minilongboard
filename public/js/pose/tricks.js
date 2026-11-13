@@ -4,6 +4,59 @@ export function createTricks(env) {
         ease, lerp, clamp, bump, newPoses, stepPositions = POS,
         PIVOT_BACK, PIVOT_FRONT, PIVOT_PREP, PIVOT_AXIS, PIVOT_SHIFT,
     } = env;
+    // Positive targets lower the stance's heel-side rail; negative targets lower toe-side.
+    const chopDeckLean = [
+        { at: 0.18, heel: 0 },
+        { at: 0.54, heel: 7 },
+        { at: 0.64, heel: 7 },
+        { at: 0.78, heel: 0 },
+    ];
+    const danceDeckLean = {
+        stepForward: [{ at: 0.12, heel: 0 }, { at: 0.5, heel: 4 }, { at: 0.9, heel: 0 }],
+        stepBack: [{ at: 0.12, heel: 0 }, { at: 0.5, heel: -4 }, { at: 0.9, heel: 0 }],
+        push: [{ at: 0.12, heel: 0 }, { at: 0.42, heel: -3 }, { at: 0.65, heel: -3 }, { at: 0.9, heel: 0 }],
+        step180: [{ at: 0.08, heel: 0 }, { at: 0.26, heel: 4 }, { at: 0.45, heel: 0 }, { at: 0.7, heel: -4 }, { at: 0.9, heel: 0 }],
+        step360: [{ at: 0.04, heel: 0 }, { at: 0.13, heel: 4 }, { at: 0.23, heel: 0 }, { at: 0.35, heel: -4 }, { at: 0.48, heel: 0 }, { at: 0.63, heel: 4 }, { at: 0.73, heel: 0 }, { at: 0.82, heel: -4 }, { at: 0.9, heel: 0 }],
+        pan: [{ at: 0.05, heel: 0 }, { at: 0.17, heel: 4 }, { at: 0.27, heel: 0 }, { at: 0.4, heel: -4 }, { at: 0.53, heel: 0 }, { at: 0.65, heel: 3 }, { at: 0.74, heel: 0 }, { at: 0.82, heel: -2.5 }, { at: 0.9, heel: 0 }],
+        mango: [{ at: 0.03, heel: 0 }, { at: 0.1, heel: 3 }, { at: 0.17, heel: 0 }, { at: 0.3, heel: -4 }, { at: 0.42, heel: -4 }, { at: 0.55, heel: 0 }, { at: 0.64, heel: 3 }, { at: 0.72, heel: 0 }, { at: 0.82, heel: 2 }, { at: 0.9, heel: 0 }],
+        pirouette: [{ at: 0.12, heel: 0 }, { at: 0.34, heel: 3 }, { at: 0.5, heel: 3 }, { at: 0.7, heel: -3 }, { at: 0.9, heel: 0 }],
+    };
+
+    function configureDanceDeckLean(ctx) {
+        const type = ctx.A.type;
+        ctx.deckLean = type === "step"
+            ? (ctx.A.to > ctx.A.from ? danceDeckLean.stepForward : danceDeckLean.stepBack)
+            : danceDeckLean[type];
+        if (!ctx.deckLean) return;
+        if (type === "step") {
+            const from = ctx.A.fromFeet || env.G.startFeet || stepPositions[ctx.A.from];
+            const movingA = from[0] !== stepPositions[ctx.A.to][0];
+            ctx.deckContactA = !movingA;
+            ctx.deckContactB = movingA;
+            // Keep the planted foot on the deck while the rider's hips bounce.
+            if (movingA) ctx.lb = -ctx.hop;
+            else ctx.la = -ctx.hop;
+        } else if (type === "push") {
+            ctx.deckContactA = ctx.pushSupportA;
+            ctx.deckContactB = !ctx.pushSupportA;
+        } else if (type === "pirouette") {
+            const frontIsA = ctx.pa >= ctx.pb;
+            const planted = ctx.t >= 200 / 920;
+            ctx.deckContactA = planted ? frontIsA : !frontIsA;
+            ctx.deckContactB = planted ? !frontIsA : frontIsA;
+            if (planted) {
+                if (frontIsA) ctx.la = -ctx.hop;
+                else ctx.lb = -ctx.hop;
+            }
+        } else {
+            const onDeck = (foot) => foot &&
+                Math.abs(foot.y - Y_ANK - ctx.shake) < 0.006 &&
+                Math.abs(foot.z) <= 0.12 &&
+                Math.abs(foot.x - ctx.B.px) <= LM * 0.55;
+            ctx.deckContactA = !!onDeck(ctx.ga);
+            ctx.deckContactB = !!onDeck(ctx.gb);
+        }
+    }
 
     function poseStep(ctx) {
         const { A, t, e, B, side, faceFwd } = ctx;
@@ -1239,6 +1292,9 @@ export function createTricks(env) {
 
     function poseChopTheWood(ctx) {
         const { t } = ctx;
+        ctx.deckLean = chopDeckLean;
+        ctx.deckContactA = t < 0.29 || t >= 0.9;
+        ctx.deckContactB = (t >= 0.18 && t <= 0.78) || t >= 0.9;
         // B is the nose foot in the standing stance: left in regular, right in goofy.
         const phase = (from, to) => ease(clamp((t - from) / (to - from), 0, 1));
         const plant = phase(0, 0.18);
@@ -1262,6 +1318,7 @@ export function createTricks(env) {
         ctx.zb = -0.095 * support; // Heel-side rail in the regular local frame.
         ctx.lb = t < 0.18 ? 0.045 * Math.sin(Math.PI * t / 0.18) : 0;
         // Shoe yaw is measured from +Z; deck-relative 10° from the nose is 80° here.
+        ctx.footYawA = t > 0 && t < 1 ? 0 : undefined;
         ctx.footYawB = support > 0 ? (Math.PI / 2 - 10 * Math.PI / 180) * support : undefined;
         ctx.za = 0.055 * airborne * (1 - recenter) + 0.32 * reach;
         ctx.pa -= 0.035 * airborne * (1 - recenter) + 0.15 * reach;
@@ -1329,5 +1386,13 @@ export function createTricks(env) {
         ghost: poseGhost,
         bail: poseBail,
     };
+    for (const type of ["step", ...Object.keys(danceDeckLean)]) {
+        if (!ACT_POSE[type]) continue;
+        const pose = ACT_POSE[type];
+        ACT_POSE[type] = (ctx) => {
+            pose(ctx);
+            configureDanceDeckLean(ctx);
+        };
+    }
     return ACT_POSE;
 }
