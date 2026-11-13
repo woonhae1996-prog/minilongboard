@@ -111,6 +111,7 @@ export function createSolver(env) {
                 .addScaledVector(shoulderAxis, s * Math.sin(al))
                 .addScaledVector(down, Math.cos(al))
                 .addScaledVector(shoulderF, 0.1 + (o.swingZ || 0) * s + pushSwing)
+                .addScaledVector(V(1, 0, 0), s === -(o.stanceSide || 1) ? (o.armNoseBias || 0) : 0)
                 .normalize();
             const elb = sh.clone().addScaledVector(up, 0.27);
             const fo = up

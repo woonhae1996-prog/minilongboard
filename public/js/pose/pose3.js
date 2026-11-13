@@ -1,7 +1,7 @@
 import { sampleRunFoot } from "./run-gait.js?v=20261111-peter-pan-duration-1200";
 // pose: 사람 자세. solve.js는 관절, tricks.js는 트릭별 발·보드, 이 파일이 한 프레임으로 합친다.
-import { createSolver } from "./solve.js?v=20261112-mango-score-duration";
-import { createTricks } from "./tricks.js?v=20261112-no-hang-poses";
+import { createSolver } from "./solve.js?v=20261113-chop-refine";
+import { createTricks } from "./tricks.js?v=20261113-chop-return-hop";
 
 // Supply opposite signs for regular/goofy; all mirroring happens once here.
 export function stanceParameters(facing) {
@@ -142,7 +142,7 @@ export function createPose3(env, getStance = stanceParameters) {
         // Preserve each action's leg identity through crossing and rotation.
         const keepNoComplyLegs = newPoses && A && A.type === "nocomply";
         const turnStep = A && (A.type === "step180" || A.type === "step360");
-        const footStep = turnStep || (A && (A.type === "pan" || A.type === "mango"));
+        const footStep = turnStep || (A && (A.type === "pan" || A.type === "mango" || A.type === "chop"));
         if (A && (A.type === "pan" || A.type === "mango") && ctx.panSocketSign != null) {
             sockSign = ctx.panSocketSign * ctx.side;
         } else if (crossFeet || (!A && env.G.crossStepStance)) {
@@ -165,6 +165,7 @@ export function createPose3(env, getStance = stanceParameters) {
             lean,
             leanF: ctx.leanF || 0,
             arms,
+            armNoseBias: ctx.armNoseBias,
             sway: idleSway,
             armDrive: pushing ? ctx.pushArmSwing : 0,
             supportArmSign: ctx.pushSupportA ? sockSign : -sockSign,
@@ -205,7 +206,9 @@ export function createPose3(env, getStance = stanceParameters) {
             if (ctx.pushSupportA) footPitch.b = ctx.pushFootPitch;
             else footPitch.a = ctx.pushFootPitch;
         }
+        if (ctx.footPitchA != null) footPitch.a = ctx.footPitchA;
         return { J, B, alpha, footYawA, footYawB,
+            pelvisYaw: A && A.type === "chop" ? bodyYaw : null,
             footPitchA: footPitch.a, footPitchB: footPitch.b };
     }
 

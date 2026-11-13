@@ -4,7 +4,7 @@ import {
     standingPositions,
     crossStepPositions,
 } from "./pose/foot-positions.js?v=20261112-no-hang-poses";
-import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
+import { createPose3 } from "./pose/pose3.js?v=20261113-chop-return-hop";
 
 (function () {
     "use strict";
@@ -58,7 +58,10 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
             ? A.dur - (80 * A.dur) / 1150
             : A.type === "ghost"
               ? A.dur
-              : A.type === "popshuv" || A.type === "frontpop" || A.type === "varialkickflip" || A.type === "hardflip"
+              : A.type === "popshuv" ||
+                  A.type === "frontpop" ||
+                  A.type === "varialkickflip" ||
+                  A.type === "hardflip"
                 ? A.dur * 0.8
                 : A.dur * (A.type === "ncbig" ? 0.81 - 200 / 1500 : 1);
     function hsh(i) {
@@ -82,6 +85,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
         "고스트라이드 킥플립": "Ghost ride kickflip",
         피터팬: "Peter Pan",
         망고: "Mango",
+        "찹 더 우드": "Chop the Wood",
         피루엣: "Pirouette",
         "바디 배리얼": "Body varial",
         "180 피봇": "180 pivot",
@@ -229,7 +233,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
             label: "360 스텝",
             zone: "가운데 뒤",
             zoneEn: "Rear middle",
-            pts: "170",
+            pts: "140",
             how: "레귤러 기준 180 스텝 뒤 오른발을 고정하고 왼발을 그 앞꿈치의 보드 왼편에 모아요. 오른발을 시계 방향으로 돌려 가운데 뒤에 착지해요",
             howEn: "Continue the 180 step by gathering the left foot to the right toes, then sweeping the right foot clockwise back to rear middle.",
         },
@@ -277,6 +281,15 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
             pts: "200",
             how: "1·2번은 피터팬과 같아요. 3번은 왼무릎을 15° 굽히고 오른다리를 왼다리 오른쪽 허공에 띄워요. 4번부터 왼무릎을 40°까지 굽히며 상체를 앞으로 기울여요. 오른발은 지면을 따라 바깥쪽 곡선으로 테일 뒤와 왼쪽 바퀴 바깥까지 끌어요. 상체는 오른쪽 45°에서 30°로 돌아요. 6번은 점프하고, 7번은 점프 여파로 몸을 낮추며 오른발을 몸 쪽으로 더 끌어와 주행 방향을 바라봐요.",
             howEn: "Steps 1 and 2 match Peter Pan. Step 3 bends the left knee 15° and lifts the right foot to the left leg's right. From step 4, the left knee bends to 40° as the torso leans forward. The right foot stays grounded and follows an outward curve behind the tail and outside the left wheel. The torso turns from 45° to 30° right. Step 6 jumps; step 7 absorbs the hop with a dip, pulls the right foot closer, and faces the direction of travel.",
+        },
+        {
+            id: "chop",
+            label: "찹 더 우드",
+            zone: "가운데 앞",
+            zoneEn: "Front middle",
+            pts: "120",
+            how: "앞발을 힐사이드에 고정해요. 뒷무릎을 접어 발을 테일 바깥 공중으로 뻗고, 회수한 뒤 짧게 홉하며 양발로 착지해요.",
+            howEn: "Plant the front foot by the heel-side rail, extend the rear foot diagonally into the air, then gather it above the deck and hop back onto both feet.",
         },
         {
             id: "pirouette",
@@ -422,8 +435,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
             label: "360 스텝",
             minV: 0.2,
             dur: 1200,
-            pts: 170,
-            cap: "170",
+            pts: 140,
+            cap: "140",
         },
         step180: {
             label: "180 스텝",
@@ -436,6 +449,13 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
         ghost: { label: "고스트라이드", minV: 0.3, cap: GHOST_BASE_PTS + "+" },
         pan: { label: "피터팬", minV: 0.2, dur: 1200, pts: 180, cap: "180" },
         mango: { label: "망고", minV: 0.2, dur: 1800, pts: 200, cap: "200" },
+        chop: {
+            label: "찹 더 우드",
+            minV: 0.2,
+            dur: 1100,
+            pts: 120,
+            cap: "120",
+        },
         pirouette: {
             label: "피루엣",
             minV: 0.25,
@@ -454,9 +474,17 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
         pivot: { label: "180 피봇", minV: 0.2, dur: 650, pts: 200, cap: "200" },
     };
     const SLOTS = [
-        ["kickflip", "heelflip", "nocomply", "popshuv", "frontpop", "varialkickflip", "hardflip"],
+        [
+            "kickflip",
+            "heelflip",
+            "nocomply",
+            "popshuv",
+            "frontpop",
+            "varialkickflip",
+            "hardflip",
+        ],
         [null, null, "ghost", "step180", "step360"],
-        ["pan", "pirouette", "varial", "mango"],
+        ["pan", "pirouette", "varial", "mango", "chop"],
         ["pivot", "shuv", "ncbig", "bigspin", "biggerspin"],
     ];
     // 한 칸에 트릭이 3개보다 많으면 그중 3개만 보여 주고, 트릭이 끝나면 다시 뽑는다.
@@ -748,7 +776,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
             (max, child) =>
                 Math.max(
                     max,
-                    Number.parseFloat(child.style.top || "0") + child.offsetHeight,
+                    Number.parseFloat(child.style.top || "0") +
+                        child.offsetHeight,
                 ),
             0,
         );
@@ -912,11 +941,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
                 }
                 return;
             }
-            if (
-                A.type === "bail" ||
-                A.type === "ghost" ||
-                A.type === "pivot"
-            )
+            if (A.type === "bail" || A.type === "ghost" || A.type === "pivot")
                 return;
             G.queue = kind;
             return;
@@ -987,8 +1012,7 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
                 quiet: true,
                 norep: true,
             });
-            if (A.to === 3)
-                addTrick("노즈 워크", 70, { key: "nose" });
+            if (A.to === 3) addTrick("노즈 워크", 70, { key: "nose" });
         } else if (A.type === "bail") {
             G.pos = startPosition;
             G.startFeet = [...startFeet];
@@ -1182,7 +1206,9 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
                 G.pushStreak = G.pushChainTimer > 0 ? G.pushStreak + 1 : 1;
                 G.pushChainTimer = PUSH_CHAIN_WINDOW;
                 const chainBonus = Math.min(
-                    (G.pushStreak - 1) * PUSH_SPEED_BOOST * PUSH_CHAIN_BONUS_RATIO,
+                    (G.pushStreak - 1) *
+                        PUSH_SPEED_BOOST *
+                        PUSH_CHAIN_BONUS_RATIO,
                     PUSH_SPEED_BOOST * PUSH_CHAIN_BONUS_CAP_RATIO,
                 );
                 applySpeedBoost(1 + chainBonus / PUSH_SPEED_BOOST);
@@ -2817,6 +2843,8 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
         r.torso.quaternion.copy(q);
         r.pelvis.position.copy(J.hip).addScaledVector(Y, 0.02);
         r.pelvis.quaternion.copy(q);
+        if (P.pelvisYaw != null)
+            r.pelvis.quaternion.setFromAxisAngle(UP(), P.pelvisYaw);
         R.headG.position.copy(J.S).addScaledVector(Y, 0.26);
         R.headG.quaternion.copy(q);
         limb(r.upL, J.shL, J.eL, 0.058);
@@ -4562,6 +4590,14 @@ import { createPose3 } from "./pose/pose3.js?v=20261112-dancing-score-update";
             en: "Mango",
             pos: 2,
             trick: "mango",
+        },
+        {
+            id: "chop",
+            group: "댄싱",
+            label: "찹 더 우드",
+            en: "Chop the Wood",
+            pos: 2,
+            trick: "chop",
         },
         {
             id: "pirouette",
