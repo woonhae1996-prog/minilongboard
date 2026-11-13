@@ -1237,6 +1237,73 @@ export function createTricks(env) {
         });
     }
 
+    function poseChopTheWood(ctx) {
+        const { t } = ctx;
+        // B is the nose foot in the standing stance: left in regular, right in goofy.
+        const phase = (from, to) => ease(clamp((t - from) / (to - from), 0, 1));
+        const plant = phase(0, 0.18);
+        const returnStance = phase(0.78, 0.9);
+        const support = plant * (1 - returnStance);
+        const weight = phase(0.18, 0.36) * (1 - returnStance);
+        const upper = phase(0.18, 0.54) * (1 - returnStance);
+        const lift = phase(0.29, 0.36);
+        const extend = phase(0.36, 0.54);
+        const tuck = phase(0.62, 0.69);
+        const pull = phase(0.69, 0.78);
+        const recenter = phase(0.69, 0.78);
+        const down = phase(0.78, 0.9);
+        const airborne = lift * (1 - down);
+        const takeoff = phase(0.78, 0.82);
+        const touchdown = phase(0.9, 0.94);
+        const settle = phase(0.94, 1);
+        const landingDip = t > 0.9 && t < 1 ? Math.sin(Math.PI * phase(0.9, 1)) : 0;
+        // A reaches diagonally toward the tail and toe-side, then tucks before returning.
+        const reach = extend * (1 - pull);
+        ctx.zb = -0.095 * support; // Heel-side rail in the regular local frame.
+        ctx.lb = t < 0.18 ? 0.045 * Math.sin(Math.PI * t / 0.18) : 0;
+        // Shoe yaw is measured from +Z; deck-relative 10° from the nose is 80° here.
+        ctx.footYawB = support > 0 ? (Math.PI / 2 - 10 * Math.PI / 180) * support : undefined;
+        ctx.za = 0.055 * airborne * (1 - recenter) + 0.32 * reach;
+        ctx.pa -= 0.035 * airborne * (1 - recenter) + 0.15 * reach;
+        ctx.la = 0.18 * airborne + 0.09 * reach;
+        // Only the rider rises; the board keeps its normal rolling pose.
+        ctx.hop = t > 0.78 && t < 0.9
+            ? 0.08 * Math.sin(Math.PI * (t - 0.78) / 0.12)
+            : 0;
+        ctx.supportHipX = lerp(
+            Xw(TAIL + ((ctx.pa + ctx.pb) / 2) * L),
+            Xw(TAIL + ctx.pb * L) - 0.08,
+            weight * 0.65,
+        );
+        ctx.hipZ = -0.08 * weight;
+        // Stay low over the planted front foot until it extends for takeoff.
+        ctx.hipDrop = 0.035 * weight + 0.15 * extend * (1 - takeoff) + 0.08 * landingDip;
+        ctx.kneeFlexB = t >= 0.78 && t < 1
+            ? t < 0.82 ? lerp(55, 20, takeoff)
+                : t < 0.9 ? 20
+                : t < 0.94 ? lerp(20, 60, touchdown)
+                : lerp(60, 53, settle)
+            : support > 0 ? 52 + 3 * phase(0.1, 0.53) : undefined;
+        if (t >= 0.25 && t < 1) {
+            ctx.kneeFlexA = t < 0.36 ? lerp(53, 55, phase(0.25, 0.31))
+                : t < 0.54 ? lerp(55, 18, extend)
+                : t < 0.62 ? 18
+                : t < 0.69 ? lerp(18, 55, tuck)
+                : t < 0.78 ? 55
+                : t < 0.82 ? lerp(55, 20, takeoff)
+                : t < 0.9 ? 20
+                : t < 0.94 ? lerp(20, 60, touchdown)
+                : lerp(60, 53, settle);
+        }
+        ctx.footPitchA = 0.16 * reach; // Toe tips slightly downward in the air.
+        // lean is a world +X tilt, independent of the pelvis yaw and its forward axis.
+        ctx.lean = (12 * Math.PI / 180) * upper;
+        ctx.shoulderYaw = (70 * Math.PI / 180) * upper;
+        ctx.yaw = (10 * Math.PI / 180) * weight;
+        ctx.arms = 0.45 + 0.5 * reach;
+        ctx.armNoseBias = 0.3 * reach;
+    }
+
     const ACT_POSE = {
         step: poseStep,
         step180: poseTurnStep,
@@ -1252,6 +1319,7 @@ export function createTricks(env) {
         nocomply: poseNocomply,
         pan: posePan,
         mango: poseMango,
+        chop: poseChopTheWood,
         bigspin: poseBigspin,
         biggerspin: poseBigspin,
         ncbig: poseNcBig,
